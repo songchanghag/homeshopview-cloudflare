@@ -1,0 +1,35 @@
+name: Update schedule data
+
+on:
+  schedule:
+    # Midnight in Korea Standard Time.
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  update-schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch latest schedule
+        run: npm run db:update
+
+      - name: Apply update files to D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          for file in tmp-update/*.sql; do
+            npx wrangler d1 execute homeshopview-db --remote --file "$file"
+          done
