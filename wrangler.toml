@@ -20,3 +20,6 @@ database_id = "2cd638ba-3e27-4f0f-ad7a-206390085d14"
 [vars]
 SITE_URL = "https://homeshopview.com"
 SITE_NAME = "홈쇼핑뷰 공영홈쇼핑"
+
+[triggers]
+crons = ["0 15 * * *"]
