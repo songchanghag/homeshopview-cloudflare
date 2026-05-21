@@ -11,11 +11,4 @@ npm run deploy
 
 ## Daily schedule update
 
-GitHub Actions runs every day at 00:00 KST and updates Cloudflare D1 from the public schedule API.
-
-Required GitHub repository secrets:
-
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-
-The workflow can also be run manually from GitHub Actions.
+Cloudflare Cron Triggers run the Worker every day at 00:00 KST and update Cloudflare D1 from the public schedule API.
