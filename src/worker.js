@@ -110,7 +110,7 @@ function scheduleCard(item, date, subs = []) {
 
 async function productPage(date, itemCode, env, ctx) {
   const item = await env.DB.prepare("SELECT * FROM schedule WHERE date = ? AND item_code = ? LIMIT 1").bind(date, itemCode).first();
-  if (!item) {
+  if (!item || date < todayKst()) {
     return htmlPage("종료된 편성 정보", `<section class="section"><div class="container"><div class="not-found"><h1>410</h1><p>해당 편성 정보는 종료되었거나 삭제되었습니다.</p><a class="btn-primary" href="/">최신 편성표 보기</a></div></div></section>`, env, { status: 410, robots: "noindex, follow" });
   }
 
@@ -153,45 +153,79 @@ async function productPage(date, itemCode, env, ctx) {
 
 async function popularPage(env) {
   const today = todayKst();
-  let rows = (await env.DB.prepare("SELECT * FROM schedule WHERE date >= ? ORDER BY views DESC, date ASC, start_time ASC LIMIT 50").bind(today).all()).results || [];
-  if (!rows.length) rows = (await env.DB.prepare("SELECT * FROM schedule ORDER BY date DESC, start_time ASC LIMIT 50").all()).results || [];
+  const rows = (await env.DB.prepare("SELECT * FROM schedule WHERE date >= ? ORDER BY views DESC, date ASC, start_time ASC LIMIT 50").bind(today).all()).results || [];
   const list = rows.map((item, index) => `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>편성표</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`).join("");
-  return htmlPage("오늘 인기 공영홈쇼핑 상품 TOP 50", `<section class="hero"><div class="container"><h1>🔥 오늘 인기 상품 TOP 50</h1><p>많이 조회된 공영홈쇼핑 방송 상품을 정리했습니다.</p></div></section><section class="section"><div class="container"><h2 class="section-title">조회수 기준 인기 상품</h2><div class="popular-list">${list}</div></div></section>`, env, { active: "popular", canonical: "/popular/" });
+  const empty = `<div class="empty-state"><h3>현재 표시할 인기 상품이 없습니다.</h3><p>편성표 데이터가 갱신되면 현재 방송 예정 상품 기준으로 다시 표시됩니다.</p></div>`;
+  return htmlPage("오늘 인기 공영홈쇼핑 상품 TOP 50", `<section class="hero"><div class="container"><h1>🔥 오늘 인기 상품 TOP 50</h1><p>현재 조회된 공영홈쇼핑 방송 상품을 정리했습니다.</p></div></section><section class="section"><div class="container"><h2 class="section-title">조회수 기준 인기 상품</h2><div class="popular-list">${list || empty}</div></div></section>`, env, { active: "popular", canonical: "/popular/" });
 }
 
 async function introPageV2(env) {
   const channelRows = await loadChannelRows(env);
-  const body = `<section class="hero"><div class="container"><h1>홈쇼핑뷰 공영홈쇼핑 소개</h1><p>공공데이터 기반으로 공영홈쇼핑 편성표와 상품 정보를 보기 쉽게 정리합니다.</p></div></section>
-  <section class="section"><div class="container"><div class="content-page">
-    <h2>사이트 소개</h2>
-    <p>홈쇼핑뷰 공영홈쇼핑은 공공데이터포털에서 제공하는 공영홈쇼핑 TV편성 상품정보 API를 활용해 방송 일정, 상품명, 가격, 카테고리, 공식 구매 링크를 정리하는 정보 사이트입니다.</p>
-    <p>본 사이트는 공영홈쇼핑 공식 사이트가 아니며, 상품 판매나 결제를 직접 제공하지 않습니다. 최종 구매 조건은 공영홈쇼핑 공식 사이트에서 확인해 주세요.</p>
-
-    <h2>운영 목적</h2>
-    <p>소비자가 방송 시간과 상품 정보를 미리 확인하고, 무료배송이나 무이자 할부 같은 조건을 함께 비교할 수 있도록 돕는 것이 목적입니다. 방송 편성은 날짜와 시간에 따라 빠르게 바뀌기 때문에, 필요한 상품을 놓치지 않도록 한 화면에서 확인할 수 있게 구성했습니다.</p>
-
-    <h2>주요 기능</h2>
-    <ul>
-      <li>오늘부터 이후 편성표까지 날짜별 방송 일정 조회</li>
-      <li>상품별 가격, 방송 시간, 카테고리, 공식 구매 링크 제공</li>
-      <li>매일 자정 공공데이터 API를 통한 최신 편성 정보 자동 업데이트</li>
-      <li>많이 조회된 상품을 모아보는 인기 상품 페이지 제공</li>
-      <li>공영홈쇼핑 이용 가이드와 전국 방송 채널 안내 제공</li>
-    </ul>
-
-    <h2>데이터 출처</h2>
-    <p>방송 편성 및 상품 정보는 공공데이터포털(data.go.kr)의 공영홈쇼핑 TV편성 상품정보 API를 기반으로 정리합니다. API 원천 데이터와 실제 방송, 상품 판매 조건이 달라질 수 있으므로 최종 구매 전에는 공식 사이트의 안내를 확인해 주세요.</p>
-
-    <h2>운영 원칙</h2>
-    <p>홈쇼핑뷰는 편성 정보와 상품 정보를 보기 쉽게 정리하는 알림형 정보 사이트입니다. 특정 상품 구매를 강요하지 않으며, 가격과 혜택 정보는 소비자가 비교 판단할 수 있도록 보조 정보로 제공합니다.</p>
-
-    ${channelGuideHtml(channelRows)}
-  </div></div></section>`;
+  const body = `<section class="hero"><div class="container"><h1>홈쇼핑뷰 공영홈쇼핑 가이드</h1><p>편성표, 상품 정보, 할인 혜택을 한눈에 비교하고 오늘의 방송 쇼핑을 더 똑똑하게 확인하세요.</p></div></section>
+  ${introGuideSectionsHtml()}
+  <section class="section"><div class="container">${channelGuideHtml(channelRows)}</div></section>`;
   return htmlPage("홈쇼핑뷰 공영홈쇼핑 소개", body, env, {
     active: "intro",
     canonical: "/intro/",
     description: "홈쇼핑뷰 공영홈쇼핑 소개, 운영 목적, 공공데이터 출처, 주요 기능, IPTV 및 케이블TV 전국 방송 채널 번호 안내."
   });
+}
+
+function introGuideSectionsHtml() {
+  return `<section class="section">
+    <div class="container">
+      <div class="cards-grid">
+        <div class="card" onclick="document.getElementById('intro-section').scrollIntoView({behavior:'smooth'})"><div class="card-icon">🏠</div><div class="card-body"><h3>공영홈쇼핑이란?</h3><p>공영홈쇼핑의 특징, 설립 목적, 일반 홈쇼핑과의 차이점을 알아보세요.</p></div></div>
+        <div class="card" onclick="document.getElementById('site-section').scrollIntoView({behavior:'smooth'})"><div class="card-icon">🦉</div><div class="card-body"><h3>사이트 소개</h3><p>홈쇼핑뷰 공영홈쇼핑 사이트의 기능과 특징을 알아보세요.</p></div></div>
+        <div class="card" onclick="document.getElementById('tips-section').scrollIntoView({behavior:'smooth'})"><div class="card-icon">💰</div><div class="card-body"><h3>알뜰 쇼핑 꿀팁</h3><p>카드 할인, 무이자 할부 등 더 싸게 사는 노하우를 공개합니다.</p></div></div>
+        <div class="card" onclick="document.getElementById('howto-section').scrollIntoView({behavior:'smooth'})"><div class="card-icon">📺</div><div class="card-body"><h3>편성표 활용법</h3><p>편성표를 미리 확인하고 쇼핑 계획을 세우는 방법을 안내합니다.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="intro-section"><div class="container"><div class="content-page">
+    <h2>🏠 공영홈쇼핑이란?</h2>
+    <h3>설립 목적과 배경</h3>
+    <p>공영홈쇼핑(아이머스)은 대한민국 정부가 중소기업과 소상공인의 판로 확대를 위해 설립한 홈쇼핑 채널입니다. 2015년 9월 개국하였으며, 공식 명칭은 (주)공영홈쇼핑입니다. 기존 민영 홈쇼핑(CJ, 현대, GS, 롯데 등)과 달리 <strong>공공의 이익</strong>을 최우선으로 운영됩니다.</p>
+    <h3>일반 홈쇼핑과의 차이점</h3>
+    <p>공영홈쇼핑은 다른 민영 홈쇼핑 채널과 다음과 같은 차별점이 있습니다.</p>
+    <ul><li><strong>중소기업 상품 비중이 높음:</strong> 전체 방송 상품의 70% 이상이 중소기업·소상공인 제품입니다.</li><li><strong>합리적인 가격 정책:</strong> 과도한 마진을 추구하지 않아 소비자가에서 경쟁력 있는 가격을 유지합니다.</li><li><strong>지역 특산품 집중 편성:</strong> 전국 각 지역의 농·수·축산물, 지역 특산품에 대한 방송 비중이 높습니다.</li><li><strong>사회적 약자 지원:</strong> 장애인 기업, 사회적 기업의 상품도 적극 편성합니다.</li><li><strong>상대적으로 낮은 송출 수수료:</strong> 중소기업 입점 시 수수료 부담이 적어 판매자와 소비자 모두에게 유리합니다.</li></ul>
+    <h3>공영홈쇼핑 방송 시간</h3>
+    <p>공영홈쇼핑은 <strong>24시간</strong> 운영됩니다. 새벽 시간대에는 주로 식품류, 낮 시간대에는 생활용품 및 패션, 저녁 시간대(프라임 타임)에는 인기 상품이 집중 편성되는 경향이 있습니다. 하루 평균 <strong>60개 이상의 상품</strong>이 방송되며, 한 방송 시간(40~65분) 동안 메인 상품 외에 세트 구성이나 관련 상품도 함께 소개됩니다.</p>
+    <h3>공영홈쇼핑 시청 방법</h3>
+    <p>공영홈쇼핑은 IPTV, 케이블TV, 위성방송 등 다양한 경로로 시청할 수 있습니다. 대부분의 IPTV에서는 <strong>21~22번 채널</strong>에서 시청 가능합니다. 자세한 지역별 채널 번호는 아래 방송 채널 안내를 참고하세요.</p>
+  </div></div></section>
+
+  <section class="section" id="site-section"><div class="container"><div class="content-page">
+    <h2>홈쇼핑뷰 공영홈쇼핑 사이트 소개</h2>
+    <h3>사이트 개요</h3>
+    <p><strong>홈쇼핑뷰 공영홈쇼핑</strong>은 공공데이터포털(data.go.kr)에서 제공하는 공영홈쇼핑 오픈 API를 활용하여 TV 편성표와 상품 정보를 수집·정리하여 제공하는 독립 정보 사이트입니다.</p>
+    <p>공영홈쇼핑 공식 사이트와는 별개로 운영되며, 소비자가 더 편리하게 편성 정보를 확인하고 합리적인 쇼핑을 할 수 있도록 돕는 것이 목표입니다.</p>
+    <h3>주요 기능</h3>
+    <ul><li><strong>날짜별 TV 편성표 조회:</strong> 오늘부터 최대 9일 후까지의 편성 일정을 날짜별로 확인할 수 있습니다.</li><li><strong>31개 항목의 상세 정보:</strong> 상품명, 가격, 할인율, 카드 혜택, 카테고리 4단계, 무이자 할부, 품절 여부 등 API에서 제공하는 모든 정보를 빠짐없이 표시합니다.</li><li><strong>메인·관련 상품 그룹핑:</strong> 같은 방송 시간대의 메인 상품과 부속 상품(세트/옵션)을 묶어서 보여드려 비교가 쉽습니다.</li><li><strong>자동 업데이트:</strong> 매일 자정에 자동으로 최신 편성 정보를 수집하여 항상 최신 상태를 유지합니다.</li><li><strong>공식 사이트 바로가기:</strong> 각 상품 상세 페이지에서 공영홈쇼핑 공식 구매 페이지로 바로 이동할 수 있습니다.</li></ul>
+    <h3>데이터 출처</h3>
+    <p>본 사이트의 모든 편성표 및 상품 정보는 <a href="https://www.data.go.kr/" target="_blank" rel="noopener">공공데이터포털(data.go.kr)</a>에서 제공하는 공영홈쇼핑 TV편성 상품정보 API를 통해 수집됩니다. 정보의 정확성을 위해 노력하고 있으나, 실제 방송 편성과 차이가 있을 수 있으므로 최종 확인은 <a href="https://www.gongyoungshop.kr" target="_blank" rel="noopener">공영홈쇼핑 공식 사이트</a>를 이용해 주세요.</p>
+    <h3>주의사항</h3>
+    <p>본 사이트는 공영홈쇼핑의 공식 사이트가 아닙니다. 상품의 직접 판매나 결제 기능을 제공하지 않으며, 실제 구매는 공영홈쇼핑 공식 사이트 또는 TV 생방송을 통해서만 가능합니다. 표시되는 가격은 API에서 제공하는 사전 등록 가격으로, 실제 방송 중 변동될 수 있습니다.</p>
+  </div></div></section>
+
+  <section class="section" id="tips-section"><div class="container"><div class="content-page">
+    <h2>💰 공영홈쇼핑 알뜰 쇼핑 꿀팁 5가지</h2>
+    <h3>1. 카드 할인을 반드시 확인하세요</h3><p>공영홈쇼핑은 특정 카드로 결제 시 <strong>추가 5~10% 할인</strong>이 적용되는 경우가 많습니다. 대표적으로 KB국민카드, 신한카드 등이 자주 제휴 할인을 진행합니다. 본 사이트 편성표에서 각 상품의 카드 할인 정보를 미리 확인할 수 있으므로, 결제 전 반드시 체크하세요.</p>
+    <h3>2. 무이자 할부를 활용하세요</h3><p>고가 제품(가전, 가구, 건강기능식품 등)의 경우 <strong>3~6개월 무이자 할부</strong>가 제공되는 경우가 많습니다. 일시불이 부담되는 상품도 무이자 할부를 활용하면 경제적 부담 없이 구매할 수 있습니다. 본 사이트에서 무이자 할부 개월 수를 미리 확인할 수 있습니다.</p>
+    <h3>3. 편성표를 미리 확인하고 쇼핑 계획을 세우세요</h3><p>본 사이트는 최대 <strong>9일 후 미래 편성표</strong>까지 미리 확인할 수 있습니다. 원하는 상품이 언제 방송되는지 사전에 파악하고, 방송 시간에 맞춰 TV를 시청하거나 공영홈쇼핑 사이트에 접속하면 놓치지 않고 구매할 수 있습니다.</p>
+    <h3>4. 무료배송 상품을 노리세요</h3><p>공영홈쇼핑 상품의 대부분은 <strong>무료배송</strong>이 적용됩니다. 하지만 간혹 부피가 크거나 특수한 상품은 배송비가 별도로 부과될 수 있습니다. 본 사이트에서 무료배송 여부를 미리 체크하여 추가 비용 없이 쇼핑하세요.</p>
+    <h3>5. 세트 구성 상품을 비교하세요</h3><p>같은 시간대에 메인 상품 외에도 <strong>세트 구성이나 단품 옵션</strong>이 함께 방송되는 경우가 많습니다. 예를 들어 메인 상품이 '사과 4.5kg'인데, 관련 상품으로 '사과 2kg 소용량'이 함께 판매될 수 있습니다. 본 사이트 편성표에서 메인 상품 아래에 관련 상품이 함께 표시되므로 쉽게 비교할 수 있습니다.</p>
+  </div></div></section>
+
+  <section class="section" id="howto-section"><div class="container"><div class="content-page">
+    <h2>📺 편성표 이렇게 활용하세요</h2>
+    <h3>STEP 1. 편성표 페이지로 이동</h3><p>상단 메뉴에서 <a href="/"><strong>📺 편성표</strong></a>를 클릭하세요. 오늘 날짜의 편성표가 기본으로 표시됩니다.</p>
+    <h3>STEP 2. 날짜 선택</h3><p>상단의 날짜 탭을 눌러 원하는 날짜의 편성 일정을 확인합니다. <strong>오늘부터 최대 9일 후까지</strong>의 편성표를 미리 확인할 수 있습니다. 오늘 날짜는 '오늘' 표시가 되어 있어 쉽게 구분할 수 있습니다.</p>
+    <h3>STEP 3. 상품 카드 확인</h3><p>각 방송 시간대별로 메인 상품이 카드 형태로 표시됩니다. 카테고리, 상품명, 가격, 할인율, 무료배송 여부, 무이자 할부, 카드 할인 등의 핵심 정보를 한눈에 확인할 수 있습니다. 메인 상품 아래에 '방송과 함께하는 상품'으로 관련 상품도 함께 표시됩니다.</p>
+    <h3>STEP 4. 상세 페이지에서 31개 항목 확인</h3><p>관심 있는 상품 카드를 클릭하면 상세 페이지로 이동합니다. 상세 페이지에서는 <strong>31개의 세부 항목</strong>(가격 정보, 카드 할인 혜택, 카테고리 4단계 분류, 구매 링크, 쇼핑 호스트, 추가 이미지 등)을 모두 확인할 수 있으며, 같은 시간대에 함께 방송되는 관련 상품도 하단에서 비교할 수 있습니다.</p>
+    <h3>STEP 5. 공식 사이트에서 구매</h3><p>상세 페이지의 <strong>'공영홈쇼핑에서 구매하기'</strong> 버튼을 클릭하면 공영홈쇼핑 공식 상품 페이지로 바로 이동합니다. PC와 모바일 링크가 모두 제공되므로 편한 환경에서 구매하실 수 있습니다.</p>
+  </div></div></section>`;
 }
 
 async function loadChannelRows(env) {

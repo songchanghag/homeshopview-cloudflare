@@ -749,6 +749,124 @@ a:hover { color: var(--accent); }
     line-height: 1.7;
 }
 
+/* ===== POPULAR / GUIDE LISTS ===== */
+.popular-list,
+.post-list-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.popular-list {
+    grid-template-columns: 1fr;
+}
+
+.popular-card,
+.post-list-card {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    color: var(--text);
+    transition: var(--transition);
+}
+
+.popular-card:hover,
+.post-list-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: rgba(41, 128, 185, 0.35);
+    color: var(--text);
+}
+
+.popular-rank {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popular-body {
+    min-width: 0;
+}
+
+.popular-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.popular-body h3,
+.post-list-card h3 {
+    font-size: 1.03rem;
+    line-height: 1.45;
+    color: var(--primary-dark);
+    margin-bottom: 6px;
+    word-break: keep-all;
+}
+
+.popular-body p,
+.post-list-card p {
+    margin: 0;
+    color: var(--danger);
+    font-weight: 800;
+}
+
+.post-list-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.post-list-card {
+    display: block;
+    min-height: 160px;
+}
+
+.post-list-label {
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #ecf5ff;
+    color: var(--primary-light);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.post-list-card p {
+    color: var(--text-light);
+    font-weight: 400;
+    line-height: 1.7;
+}
+
+.empty-state {
+    background: #fff;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 34px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.empty-state h3 {
+    color: var(--primary-dark);
+    margin-bottom: 8px;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .mobile-toggle { display: block; }
