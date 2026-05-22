@@ -153,6 +153,16 @@ a:hover { color: var(--accent); }
     border-bottom: 3px solid var(--primary-light);
     display: inline-block;
 }
+.section-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.section-heading-row .section-title {
+    margin-bottom: 0;
+}
 
 /* ===== CARDS GRID ===== */
 .cards-grid {
@@ -808,6 +818,7 @@ a:hover { color: var(--accent); }
     align-items: stretch;
     gap: 16px;
     width: 100%;
+    min-width: 0;
     background: #fff;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -840,7 +851,9 @@ a:hover { color: var(--accent); }
 }
 
 .popular-body {
+    flex: 1 1 0;
     min-width: 0;
+    max-width: 100%;
 }
 
 .popular-meta {
@@ -939,15 +952,18 @@ a:hover { color: var(--accent); }
     
     .hero h1 { font-size: 1.6rem; overflow-wrap: anywhere; word-break: keep-all; }
     .hero { padding: 40px 0 30px; }
-    .hero p { font-size: 0.98rem; }
+    .hero p { font-size: 0.98rem; max-width: 100%; overflow-wrap: anywhere; word-break: break-all; }
+    .section-heading-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .section-heading-row .section-title { font-size: 1.35rem; }
     
     .schedule-card { flex-direction: column; gap: 12px; padding: 16px; max-width: 100%; }
     .schedule-time { width: 100%; flex-direction: row; gap: 10px; padding: 10px 16px; }
     .schedule-img { width: 100%; height: 200px; }
     .schedule-info .product-name { font-size: 0.98rem; -webkit-line-clamp: 3; }
-    .popular-card { gap: 12px; padding: 16px; }
+    .popular-card { gap: 12px; padding: 16px; align-items: flex-start; }
+    .popular-body { flex: 1 1 0; min-width: 0; }
     .popular-rank { flex-basis: 42px; width: 42px; height: 42px; border-radius: 12px; }
-    .popular-body h3, .post-list-card h3 { font-size: 0.98rem; }
+    .popular-body h3, .post-list-card h3 { font-size: 0.98rem; word-break: break-all; }
     .post-list-grid { grid-template-columns: 1fr; }
     
     .product-header { flex-direction: column; }

@@ -262,8 +262,9 @@ async function popularPage(env) {
 async function categoryPopularPage(slug, env) {
   const config = CATEGORY_PAGES[slug];
   if (!config) return htmlPage("인기 상품을 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 인기 상품 분류를 찾을 수 없습니다.</p><a class="btn-primary" href="/popular/">인기 상품 보기</a></div></div></section>`, env, { status: 404 });
-  const rows = await loadCategoryItems(env, slug, 30, true);
-  const list = rows.map((item, index) => `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>${esc(config.heading)}</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`).join("");
+  const rows = await loadCategoryItems(env, slug, 120, true);
+  const slots = groupCategorySlots(rows).slice(0, 30);
+  const list = slots.map((slot, index) => popularSlotCard(slot, config, index)).join("");
   return htmlPage(`${config.heading} 인기 TOP 30 - 홈쇼핑뷰`, `<section class="hero"><div class="container"><h1>${esc(config.heading)} 인기 TOP 30</h1><p>조회수와 편성 정보를 기준으로 ${esc(config.heading)}을 정리했습니다.</p></div></section><section class="section"><div class="container"><div class="popular-list">${list || emptyCategoryHtml(config)}</div></div></section>`, env, {
     active: "popular",
     canonical: `/popular/${slug}/`,
@@ -274,13 +275,15 @@ async function categoryPopularPage(slug, env) {
 async function categoryLandingPage(slug, env) {
   const config = CATEGORY_PAGES[slug];
   if (!config) return htmlPage("상품군 페이지를 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 상품군 페이지를 찾을 수 없습니다.</p><a class="btn-primary" href="/">편성표 보기</a></div></div></section>`, env, { status: 404 });
-  const rows = await loadCategoryItems(env, slug, 24, false);
-  const popularRows = await loadCategoryItems(env, slug, 6, true);
-  const cards = rows.length ? `<div class="schedule-list">${rows.map((item) => scheduleCard(item, item.date, [])).join("")}</div>` : emptyCategoryHtml(config);
+  const rows = await loadCategoryItems(env, slug, 120, false);
+  const popularRows = await loadCategoryItems(env, slug, 80, true);
+  const slots = groupCategorySlots(rows).slice(0, 24);
+  const popularSlots = groupCategorySlots(popularRows).slice(0, 6);
+  const cards = slots.length ? `<div class="schedule-list">${slots.map((slot) => scheduleCard(slot.main, slot.main.date, slot.subs)).join("")}</div>` : emptyCategoryHtml(config);
   const guideSlug = config.guide[0];
   const faqHtml = `<div class="faq-section guide-faq"><h2>자주 묻는 질문</h2>${config.faq.map(([q, a], index) => `<div class="faq-item${index === 0 ? " open" : ""}"><div class="faq-question"><span>Q. ${esc(q)}</span><span class="icon">⌄</span></div><div class="faq-answer"><div class="faq-answer-inner">${esc(a)}</div></div></div>`).join("")}</div>`;
   const body = `<section class="hero"><div class="container"><h1>${esc(config.title)}</h1><p>${esc(config.description)}</p></div></section>
-  ${categoryPopularPreviewHtml(config, slug, popularRows)}
+  ${categoryPopularPreviewHtml(config, slug, popularSlots)}
   <section class="section"><div class="container"><h2 class="section-title">오늘 이후 편성 상품</h2>${cards}</div></section>
   <section class="section"><div class="container"><div class="content-page"><h2>구매 전 체크포인트</h2><p>${esc(config.description)} 방송 화면의 혜택 문구만 보고 바로 결제하기보다 공식 상품 페이지의 최종 조건을 함께 확인하는 것이 좋습니다.</p><ul>${config.points.map((point) => `<li>${esc(point)}</li>`).join("")}</ul><p>관련 기준을 더 자세히 보려면 <a href="/guide/${guideSlug}/">${esc(config.guide[1])}</a>를 함께 확인해 주세요.</p></div></div></section>
   <section class="section"><div class="container">${faqHtml}</div></section>`;
@@ -296,10 +299,16 @@ function categoryNavActive(slug) {
   return "schedule";
 }
 
-function categoryPopularPreviewHtml(config, slug, rows) {
-  if (!rows.length) return "";
-  const list = rows.map((item, index) => `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>${esc(config.heading)}</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`).join("");
-  return `<section class="section"><div class="container"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px;"><h2 class="section-title" style="margin-bottom:0;">인기 ${esc(config.heading)} TOP 6</h2><a href="/popular/${slug}/" class="btn-secondary">TOP 30 보기</a></div><div class="popular-list">${list}</div></div></section>`;
+function categoryPopularPreviewHtml(config, slug, slots) {
+  if (!slots.length) return "";
+  const list = slots.map((slot, index) => popularSlotCard(slot, config, index)).join("");
+  return `<section class="section"><div class="container"><div class="section-heading-row"><h2 class="section-title">인기 ${esc(config.heading)} TOP 6</h2><a href="/popular/${slug}/" class="btn-secondary">TOP 30 보기</a></div><div class="popular-list">${list}</div></div></section>`;
+}
+
+function popularSlotCard(slot, config, index) {
+  const item = slot.main;
+  const subText = slot.subs.length ? ` · 함께 방송 ${slot.subs.length}개` : "";
+  return `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>${esc(config.heading)}</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회${subText}</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`;
 }
 
 async function channelPage(env) {
@@ -1412,7 +1421,7 @@ function htmlPage(title, body, env, options = {}) {
   const canonical = new URL((options.canonical || "/").replace(/^\//, ""), siteUrl(env)).toString();
   const description = options.description || "홈쇼핑뷰 공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.";
   const robotsMeta = options.robots ? `<meta name="robots" content="${esc(options.robots)}">` : "";
-  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260522" type="image/png"><link rel="shortcut icon" href="/favicon.png?v=20260522" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260522"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><link rel="stylesheet" href="/css/style.css"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
+  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260522" type="image/png"><link rel="shortcut icon" href="/favicon.png?v=20260522" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260522"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><link rel="stylesheet" href="/css/style.css?v=20260522-category"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
   return new Response(page, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": status === 200 ? "public, max-age=300" : "no-store" } });
 }
 
@@ -1446,6 +1455,32 @@ function groupSlots(items) {
     if (!slot.main && slot.subs.length) slot.main = slot.subs.shift();
   }
   return slots;
+}
+
+function groupCategorySlots(items) {
+  const slots = [];
+  const map = new Map();
+  for (const item of items) {
+    const key = `${item.date}_${item.start_time}_${item.end_time}`;
+    if (!map.has(key)) {
+      map.set(key, { main: null, subs: [] });
+      slots.push(map.get(key));
+    }
+    const slot = map.get(key);
+    if (!slot.main) {
+      slot.main = item;
+      continue;
+    }
+    const currentIsMain = Number(slot.main.main);
+    const itemIsMain = Number(item.main);
+    if (itemIsMain && (!currentIsMain || Number(item.priority || 0) < Number(slot.main.priority || 0))) {
+      slot.subs.push(slot.main);
+      slot.main = item;
+    } else {
+      slot.subs.push(item);
+    }
+  }
+  return slots.filter((slot) => slot.main);
 }
 
 function parseJson(value, fallback) {
