@@ -163,7 +163,8 @@ async function introPageV2(env) {
   const channelRows = await loadChannelRows(env);
   const body = `<section class="hero"><div class="container"><h1>홈쇼핑뷰 공영홈쇼핑 가이드</h1><p>편성표, 상품 정보, 할인 혜택을 한눈에 비교하고 오늘의 방송 쇼핑을 더 똑똑하게 확인하세요.</p></div></section>
   ${introGuideSectionsHtml()}
-  <section class="section"><div class="container">${channelGuideHtml(channelRows)}</div></section>`;
+  <section class="section"><div class="container">${channelGuideHtml(channelRows)}</div></section>
+  ${faqSectionHtml()}`;
   return htmlPage("홈쇼핑뷰 공영홈쇼핑 소개", body, env, {
     active: "intro",
     canonical: "/intro/",
@@ -226,6 +227,17 @@ function introGuideSectionsHtml() {
     <h3>STEP 4. 상세 페이지에서 31개 항목 확인</h3><p>관심 있는 상품 카드를 클릭하면 상세 페이지로 이동합니다. 상세 페이지에서는 <strong>31개의 세부 항목</strong>(가격 정보, 카드 할인 혜택, 카테고리 4단계 분류, 구매 링크, 쇼핑 호스트, 추가 이미지 등)을 모두 확인할 수 있으며, 같은 시간대에 함께 방송되는 관련 상품도 하단에서 비교할 수 있습니다.</p>
     <h3>STEP 5. 공식 사이트에서 구매</h3><p>상세 페이지의 <strong>'공영홈쇼핑에서 구매하기'</strong> 버튼을 클릭하면 공영홈쇼핑 공식 상품 페이지로 바로 이동합니다. PC와 모바일 링크가 모두 제공되므로 편한 환경에서 구매하실 수 있습니다.</p>
   </div></div></section>`;
+}
+
+function faqSectionHtml() {
+  const faqs = [
+    ["이 사이트는 공영홈쇼핑 공식 사이트인가요?", "아닙니다. 본 사이트는 공공데이터포털에서 제공하는 공영홈쇼핑 오픈 API를 활용하여 편성표 및 상품 정보를 정리·제공하는 독립 정보 사이트입니다. 공식적인 구매 및 결제는 공영홈쇼핑 공식 사이트(gongyoungshop.kr)를 이용해 주세요."],
+    ["편성표 정보는 얼마나 자주 업데이트 되나요?", "매일 자정(00:00)에 자동으로 업데이트됩니다. 오늘부터 미래 9일까지 총 10일 치의 편성 정보를 수집하여 최신 상태를 유지합니다. 공영홈쇼핑 측에서 편성이 수정되더라도 자동으로 반영됩니다."],
+    ["상품을 이 사이트에서 바로 구매할 수 있나요?", "본 사이트에서는 직접 구매가 불가능합니다. 상품 정보를 확인한 후, 공영홈쇼핑 공식 사이트 또는 TV 생방송을 통해 구매하실 수 있습니다. 각 상품 상세 페이지에서 공식 사이트 링크를 제공하고 있으니 참고해 주세요."],
+    ["공영홈쇼핑은 다른 홈쇼핑보다 저렴한가요?", "공영홈쇼핑은 중소기업·소상공인 제품의 판로 확대를 위해 설립된 채널로, 과도한 마진 없이 합리적인 가격 정책을 운영합니다. 특히 지역 특산품이나 중소기업 제품의 경우 다른 유통 채널보다 경쟁력 있는 가격으로 구매할 수 있는 경우가 많습니다."],
+    ["공영홈쇼핑 채널번호가 지역마다 다른가요?", "IPTV(KT Genie TV, SKB Btv, LG U+ TV)에서는 전국적으로 21~22번 채널에서 시청 가능합니다. 다만 케이블TV의 경우 지역과 SO(종합유선방송사업자)에 따라 채널 번호가 다를 수 있으니, 위 채널 안내표를 참고하거나 해당 케이블TV 사업자에게 문의해 주세요."]
+  ];
+  return `<section class="section"><div class="container"><div class="faq-section"><h2>❓ 자주 묻는 질문</h2>${faqs.map(([question, answer]) => `<div class="faq-item"><div class="faq-question"><span>Q. ${question}</span><span class="icon">▼</span></div><div class="faq-answer"><div class="faq-answer-inner">${answer}</div></div></div>`).join("")}</div></div></section>`;
 }
 
 async function loadChannelRows(env) {
@@ -297,15 +309,44 @@ function staticLegalPage(title, content, env) {
 }
 
 function termsHtml() {
-  return `<p>본 약관은 홈쇼핑뷰 공영홈쇼핑 정보 사이트 이용과 관련한 기본 사항을 안내합니다. 본 사이트는 공공데이터 기반 편성표와 상품 정보를 제공하며, 상품 판매와 결제를 직접 수행하지 않습니다.</p><p>사이트에 표시되는 정보는 API 제공 데이터와 실제 방송 상황에 따라 달라질 수 있습니다. 최종 구매 조건은 반드시 공영홈쇼핑 공식 사이트에서 확인해야 합니다.</p>`;
+  return `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:30px;">시행일: 2026년 5월 9일 | 최종 수정: 2026년 5월 9일</p>
+  <h2>제1조 목적</h2><p>본 약관은 홈쇼핑뷰 공영홈쇼핑 정보 사이트(이하 "서비스")가 제공하는 편성표 및 상품 정보 이용 조건과 절차, 이용자와 서비스의 권리·의무 및 책임사항을 안내합니다.</p>
+  <h2>제2조 서비스의 내용</h2><p>서비스는 다음 기능을 제공합니다.</p><ul><li>공영홈쇼핑 TV 편성표 정보의 수집 및 제공</li><li>상품별 가격, 할인율, 카드 할인 정보 안내</li><li>날짜별 편성 일정 검색 기능</li><li>공영홈쇼핑 이용 가이드 및 알뜰 쇼핑 정보 제공</li><li>방송 채널 안내</li></ul>
+  <h2>제3조 정보의 출처 및 정확성</h2><p>서비스에서 제공되는 편성표 및 상품 정보는 공공데이터포털(data.go.kr)에서 제공하는 공영홈쇼핑 오픈 API를 통해 수집됩니다.</p><p>서비스는 정보의 정확성을 위해 노력하지만, 실제 방송 편성 및 상품 가격은 공영홈쇼핑 공식 사이트(gongyoungshop.kr)에서 반드시 확인하시기 바랍니다.</p><p>편성표 변경, 가격 변동, 상품 품절 등으로 인한 차이가 발생할 수 있으며, 이로 인한 불이익에 대해 서비스는 책임지지 않습니다.</p>
+  <h2>제4조 이용자의 의무</h2><p>이용자는 다음 행위를 하여서는 안 됩니다.</p><ul><li>서비스의 정상적인 운영을 방해하는 행위</li><li>자동화된 수단을 이용한 대량의 데이터 수집 행위</li><li>서비스 정보를 상업적 목적으로 무단 복제하는 행위</li><li>타인의 개인정보를 침해하는 행위</li></ul>
+  <h2>제5조 지적재산권</h2><p>서비스의 디자인, 소프트웨어, 편집 저작물에 대한 권리는 홈쇼핑뷰에 있습니다. 공영홈쇼핑 상품 이미지 및 편성표 원천 데이터의 저작권은 각 권리자에게 있습니다.</p><p>이용자는 서비스의 콘텐츠를 운영자의 사전 동의 없이 복제, 배포, 상업적으로 이용할 수 없습니다.</p>
+  <h2>제6조 면책</h2><p>서비스는 천재지변, 시스템 장애 등 불가항력으로 인한 서비스 중단에 대해 책임지지 않습니다.</p><p>이용자가 서비스의 정보를 바탕으로 한 구매 결정으로 발생하는 손해에 대해서는 책임지지 않습니다.</p><p>본 사이트는 공영홈쇼핑의 공식 사이트가 아니며, 상품을 직접 판매하거나 결제 기능을 제공하지 않습니다.</p>
+  <h2>제7조 광고 정책</h2><p>서비스는 운영 비용 충당을 위해 Google AdSense 등의 광고를 게재할 수 있습니다. 광고 클릭 시 외부 사이트로 이동할 수 있으며, 외부 사이트에서 발생하는 거래·계약·손해는 해당 광고주의 책임입니다.</p>
+  <h2>제8조 약관의 변경</h2><p>본 약관은 관련 법령 또는 서비스 정책 변경에 따라 수정될 수 있으며, 변경 내용은 서비스에 공지 후 적용됩니다.</p>
+  <h2>제9조 준거법 및 관할</h2><p>본 약관은 대한민국 법률에 따라 해석되며, 서비스 이용과 관련한 분쟁은 민사소송법상 관할 법원에 제기합니다.</p>
+  <h2>제10조 문의</h2><p>본 약관에 관한 문의사항은 <a href="/contact/">문의 페이지</a> 또는 전화 0507-2834-5978로 연락해 주시기 바랍니다.</p>`;
 }
 
 function privacyHtml() {
-  return `<p>홈쇼핑뷰는 회원가입 기능을 제공하지 않으며, 이용자의 주민등록번호나 결제 정보를 수집하지 않습니다. 문의가 접수되는 경우 답변을 위해 이메일 등 사용자가 직접 제공한 정보만 제한적으로 확인할 수 있습니다.</p><p>서비스 안정성과 보안, 통계 분석을 위해 Cloudflare가 기본 접속 로그를 처리할 수 있습니다.</p>`;
+  return `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:30px;">시행일: 2026년 5월 9일 | 최종 수정: 2026년 5월 9일</p>
+  <p>홈쇼핑뷰 공영홈쇼핑(이하 "서비스")은 이용자의 개인정보를 중요하게 생각하며, 개인정보 보호법을 준수합니다. 본 방침은 서비스 이용 과정에서 처리될 수 있는 정보의 항목, 이용 목적, 보유 기간 등을 안내합니다.</p>
+  <h2>1. 수집하는 개인정보 항목</h2><p>서비스는 별도의 회원가입 없이 이용 가능하며, 주민등록번호, 결제 정보, 주소 등 민감한 개인정보를 직접 수집하지 않습니다.</p><ul><li>접속 IP 주소(보안 및 통계 목적)</li><li>방문 일시, 이용 기록</li><li>브라우저 종류, 운영체제 정보</li><li>문의 시 이용자가 직접 제공한 연락 정보</li></ul>
+  <h2>2. 개인정보의 수집 및 이용 목적</h2><ul><li>서비스 이용 통계 분석 및 품질 개선</li><li>인기 상품 및 트래픽 분석</li><li>서비스 안정성 확보 및 부정 이용 방지</li><li>문의 사항에 대한 답변 제공</li></ul>
+  <h2>3. 개인정보의 보유 및 이용 기간</h2><p>수집된 정보는 수집 목적 달성 후 지체 없이 파기합니다.</p><ul><li>접속 로그: 최대 90일 보관 후 자동 삭제</li><li>문의 기록: 답변 완료 후 필요한 기간 동안 보관 후 삭제</li></ul>
+  <h2>4. 개인정보의 제3자 제공</h2><p>서비스는 이용자의 개인정보를 외부에 제공하지 않습니다. 다만 법령에 의해 요구되는 경우는 예외로 합니다.</p>
+  <h2>5. 쿠키 사용</h2><p>서비스는 이용 경험 개선과 통계 분석을 위해 쿠키를 사용할 수 있습니다. 이용자는 브라우저 설정을 통해 쿠키 저장을 거부할 수 있습니다.</p>
+  <h2>6. 광고 서비스</h2><p>서비스는 Google AdSense 등 광고 서비스를 사용할 수 있으며, 광고 제공 업체가 쿠키를 통해 이용자의 관심사 기반 광고를 게재할 수 있습니다. 자세한 내용은 <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">Google 광고 정책</a>에서 확인할 수 있습니다.</p>
+  <h2>7. 개인정보 보호를 위한 기술적 조치</h2><ul><li>SSL/TLS 암호화 통신 적용</li><li>접근 권한 최소화 및 관리</li><li>불필요한 개인정보 수집 제한</li></ul>
+  <h2>8. 개인정보 관련 문의</h2><p>개인정보 처리에 관한 문의사항은 <a href="/contact/">문의 페이지</a> 또는 전화 0507-2834-5978로 연락해 주시기 바랍니다.</p>`;
 }
 
 function contactHtml() {
-  return `<p>사이트 이용 중 오류, 편성표 정보 문제, 문의 사항이 있으면 아래 이메일로 연락해 주세요.</p><p><strong>이메일:</strong> songchanghag790@gmail.com</p><p><strong>연락처:</strong> 0507-2834-5978</p>`;
+  return `<p>서비스 이용 중 궁금한 점이 있거나, 정보 오류를 발견하셨다면 아래 연락처로 편하게 문의해 주세요.</p>
+  <div style="background:var(--bg);border-radius:var(--radius-sm);padding:30px;margin:30px 0;text-align:center;">
+    <p style="font-size:1.3rem;font-weight:700;color:var(--primary-dark);margin-bottom:16px;">홈쇼핑뷰</p>
+    <p style="font-size:1.05rem;margin-bottom:8px;"><strong>전화문의:</strong> <a href="tel:0507-2834-5978" style="font-weight:700;color:var(--primary-light);">0507-2834-5978</a></p>
+    <p style="font-size:1.05rem;margin-bottom:8px;"><strong>이메일:</strong> <span style="font-weight:700;color:var(--primary-light);">songchanghag790@gmail.com</span></p>
+    <p style="font-size:0.9rem;color:var(--text-muted);">운영시간: 평일 10:00 ~ 18:00 (점심시간 12:00 ~ 13:00)</p>
+  </div>
+  <h2>문의 유형 안내</h2>
+  <p><strong>정보 오류 신고:</strong> 편성표 정보나 상품 가격 등에 오류가 있는 경우 알려주시면 확인 후 수정하겠습니다.</p>
+  <p><strong>사이트 건의:</strong> 추가되었으면 하는 기능이나 개선 사항이 있으면 의견을 보내주세요.</p>
+  <p><strong>기타 문의:</strong> 제휴, 광고, 기타 문의도 환영합니다.</p>`;
 }
 
 async function sitemap(env) {
