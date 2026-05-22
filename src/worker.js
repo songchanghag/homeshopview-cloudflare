@@ -120,6 +120,7 @@ async function productPage(date, itemCode, env, ctx) {
   const buyUrl = item.url || item.detail_url || item.m_url || item.m_detail_url;
   const cards = parseJson(item.cards, []);
   const imgList = parseJson(item.img_list, []);
+  const canonicalPath = `/schedule/${date}/${encodeURIComponent(itemCode)}`;
 
   const body = `
     <section class="section" style="padding-top:20px;"><div class="container">
@@ -130,6 +131,7 @@ async function productPage(date, itemCode, env, ctx) {
           <h1>${esc(name)}</h1>
           <div class="product-meta-row"><span>📅 방송일 ${formatDate(item.date)}</span><span>⏰ ${formatTime(item.start_time)} ~ ${formatTime(item.end_time)} (${item.runtime}분)</span></div>
           ${buyUrl ? `<a href="${esc(buyUrl)}" target="_blank" rel="noopener" class="btn-apply">🛒 공영홈쇼핑에서 구매하기</a>` : ""}
+          ${socialShareButtons(name, canonicalPath, env)}
         </div>
         <div class="summary-box"><h2>📋 상품 핵심 요약</h2><p><strong>${esc(name)}</strong>은 공영홈쇼핑에서 <strong>${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)}</strong> 시간대에 방송되는 <strong>${esc(decodeName(item.category1))}</strong> 상품입니다.</p><p>판매가는 <strong style="color:var(--danger);font-size:1.1em;">${price(item.price)}원</strong>이며 ${Number(item.free_shipping) ? "무료배송" : "배송비 별도"} 조건으로 표시됩니다. 실제 구매 전 공식 사이트의 최종 조건을 확인해 주세요.</p></div>
         <div class="product-header">
@@ -147,9 +149,22 @@ async function productPage(date, itemCode, env, ctx) {
 
   return htmlPage(`${name} - ${formatDate(item.date)} 공영홈쇼핑 편성표`, body, env, {
     description: `${name} 공영홈쇼핑 ${formatDate(item.date)} ${formatTime(item.start_time)} 방송 상품 정보, 가격 ${price(item.price)}원, 카테고리 ${decodeName(item.category1)}.`,
-    canonical: `/schedule/${date}/${encodeURIComponent(itemCode)}`,
+    canonical: canonicalPath,
     active: "schedule"
   });
+}
+
+function socialShareButtons(title, path, env) {
+  const url = new URL(path.replace(/^\//, ""), siteUrl(env)).toString();
+  const encodedUrl = encodeURIComponent(url);
+  const encodedTitle = encodeURIComponent(title);
+  return `<div class="social-share" aria-label="공유하기">
+    <a class="share-btn share-naver" href="https://share.naver.com/web/shareView?url=${encodedUrl}&title=${encodedTitle}" target="_blank" rel="noopener" aria-label="네이버 공유">N</a>
+    <a class="share-btn share-facebook" href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" rel="noopener" aria-label="페이스북 공유">f</a>
+    <a class="share-btn share-x" href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}" target="_blank" rel="noopener" aria-label="X 공유">X</a>
+    <a class="share-btn share-band" href="https://band.us/plugin/share?body=${encodedTitle}%0A${encodedUrl}&route=${encodeURIComponent(siteUrl(env))}" target="_blank" rel="noopener" aria-label="밴드 공유">b</a>
+    <button type="button" class="share-btn share-copy" data-copy-url="${esc(url)}" aria-label="링크 복사">⧉</button>
+  </div>`;
 }
 
 function productFaqHtml(item, productName, cards, relatedItems) {
@@ -325,7 +340,29 @@ function guideArticle(title) {
   <p>${data.caution}</p>
   <h2>알뜰 활용 팁</h2>
   <p>${data.tip}</p>
+  ${guideSeoBody(title, data)}
   <div class="faq-section guide-faq"><h2>❓ 자주 묻는 질문</h2>${data.faqs.map(([question, answer], index) => `<div class="faq-item${index === 0 ? " open" : ""}"><div class="faq-question"><span>Q. ${question}</span><span class="icon">▼</span></div><div class="faq-answer"><div class="faq-answer-inner">${answer}</div></div></div>`).join("")}</div>`;
+}
+
+function guideSeoBody(title, data) {
+  return `<h2>${title}를 볼 때 먼저 정리할 기준</h2>
+  <p>${title}에서 가장 중요한 기준은 방송 화면의 강한 문구보다 실제 구매자가 확인할 수 있는 객관적인 정보입니다. 홈쇼핑 상품은 한정 수량, 방송 전용 구성, 카드 혜택, 무이자 할부, 무료배송 표시가 함께 노출되기 때문에 순간적으로 저렴해 보일 수 있습니다. 하지만 같은 가격이라도 구성 수량이 다르면 체감 단가가 달라지고, 같은 무료배송이라도 제주도나 도서산간 지역은 추가 비용이 붙을 수 있습니다. 따라서 편성표를 볼 때는 상품명, 방송 시간, 판매가, 정상가, 배송 조건, 구매 링크를 한 번에 확인하고 공식 판매 페이지에서 최종 조건을 다시 대조하는 습관이 필요합니다.</p>
+  <p>특히 공영홈쇼핑 편성표는 식품, 건강식품, 생활가전, 패션, 주방용품처럼 상품군이 다양합니다. 식품은 원산지와 중량, 건강식품은 기능성 표시와 섭취 대상, 생활가전은 설치 조건과 AS, 패션은 사이즈와 교환 조건이 핵심입니다. ${title}를 읽는 목적은 단순히 “싸다”를 판단하는 것이 아니라, 내 상황에 맞는 상품인지, 방송 시간이 지난 뒤에도 구매 가능한지, 실제 결제 단계에서 가격이 달라질 가능성이 있는지를 미리 점검하는 데 있습니다.</p>
+  <h2>편성표와 공식 구매 페이지를 함께 보는 이유</h2>
+  <p>홈쇼핑뷰는 공공데이터 기반으로 공영홈쇼핑 방송 편성 정보를 정리합니다. 이 정보는 방송 전 상품을 비교하고 일정을 확인하는 데 유용하지만, 최종 판매 조건을 대신하지는 않습니다. 방송 편성은 갑자기 변경될 수 있고, 상품 상세 페이지의 사은품, 카드 할인, 재고 상태, 배송 일정도 시점에 따라 달라질 수 있습니다. 그래서 편성표에서 관심 상품을 찾은 뒤에는 반드시 공식 구매 페이지로 이동해 가격과 조건을 다시 확인하는 것이 좋습니다.</p>
+  <p>공식 페이지를 확인할 때는 판매가만 보지 말고 구성품 전체를 확인해야 합니다. 예를 들어 같은 고기 세트라도 총 중량, 부위 구성, 팩 수, 원산지가 다르면 실제 가치는 크게 달라집니다. 생활가전은 본체만 포함되는지, 필터나 추가 부속품이 포함되는지에 따라 유지 비용이 달라집니다. 패션 상품은 색상 선택 가능 여부와 사이즈 교환 가능 기간을 확인해야 합니다. 이런 항목을 함께 보면 방송 중 충동구매를 줄이고, 필요한 상품을 더 안정적으로 고를 수 있습니다.</p>
+  <h2>가격과 혜택을 비교하는 방법</h2>
+  <p>${title}에서 가격을 볼 때는 정상가, 판매가, 할인율, 카드 혜택을 분리해서 보는 것이 좋습니다. 할인율이 높아도 정상가 기준이 높게 잡혀 있으면 실제 혜택이 크지 않을 수 있고, 반대로 할인율 표시는 작아도 무료배송이나 무이자 할부, 추가 구성품이 붙으면 체감 조건이 좋아질 수 있습니다. 특히 카드 청구 할인은 결제 카드, 결제 금액, 행사 기간에 따라 적용 여부가 달라지므로 결제 직전 화면에서 최종 금액을 확인해야 합니다.</p>
+  <p>무이자 할부는 실제 가격을 깎아 주는 혜택은 아니지만, 큰 금액의 생활가전이나 대용량 세트 상품을 구매할 때 부담을 나누는 데 도움이 됩니다. 다만 할부 개월 수가 길다고 무조건 좋은 것은 아닙니다. 꼭 필요한 상품인지, 보관 공간이 충분한지, 월별 지출 계획에 맞는지까지 생각해야 합니다. 홈쇼핑은 방송 시간의 압박이 있기 때문에 가격 비교를 미리 해 두면 훨씬 차분하게 판단할 수 있습니다.</p>
+  <h2>구매 전 마지막 체크리스트</h2>
+  <ul>
+    <li>상품명과 모델명 또는 구성품명이 공식 페이지와 같은지 확인합니다.</li>
+    <li>방송 날짜와 시간, 판매 상태, 품절 여부를 확인합니다.</li>
+    <li>무료배송, 무이자 할부, 카드 할인 조건이 실제 결제 단계에 적용되는지 확인합니다.</li>
+    <li>식품은 중량과 원산지, 건강식품은 섭취 주의사항, 가전은 AS와 설치 조건, 패션은 사이즈표를 확인합니다.</li>
+    <li>교환·반품 가능 기간과 왕복 배송비 부담 여부를 확인합니다.</li>
+  </ul>
+  <p>이 체크리스트를 기준으로 보면 ${title}는 단순한 안내 글이 아니라 공영홈쇼핑 편성표를 실전에서 활용하기 위한 기준표가 됩니다. 방송 상품은 시간이 지나면 가격과 구성이 바뀔 수 있으므로, 오늘 방송되는 상품은 오늘 조건으로 확인하고, 며칠 뒤 다시 편성되는 상품은 다시 비교하는 방식이 가장 안전합니다. 홈쇼핑뷰의 편성표, 인기 상품, 가이드 글을 함께 활용하면 필요한 상품을 놓치지 않고 더 신중하게 비교할 수 있습니다.</p>`;
 }
 
 function guideArticleData(title) {

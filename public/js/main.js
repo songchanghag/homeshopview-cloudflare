@@ -14,6 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    document.querySelectorAll('.share-copy').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const url = btn.dataset.copyUrl || location.href;
+            try {
+                await navigator.clipboard.writeText(url);
+                const original = btn.textContent;
+                btn.textContent = '✓';
+                setTimeout(() => { btn.textContent = original; }, 1200);
+            } catch (e) {
+                location.href = url;
+            }
+        });
+    });
+
     // Channel table region filter
     document.querySelectorAll('.region-tab').forEach(tab => {
         tab.addEventListener('click', () => {
