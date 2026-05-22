@@ -275,10 +275,12 @@ async function categoryLandingPage(slug, env) {
   const config = CATEGORY_PAGES[slug];
   if (!config) return htmlPage("상품군 페이지를 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 상품군 페이지를 찾을 수 없습니다.</p><a class="btn-primary" href="/">편성표 보기</a></div></div></section>`, env, { status: 404 });
   const rows = await loadCategoryItems(env, slug, 24, false);
+  const popularRows = await loadCategoryItems(env, slug, 6, true);
   const cards = rows.length ? `<div class="schedule-list">${rows.map((item) => scheduleCard(item, item.date, [])).join("")}</div>` : emptyCategoryHtml(config);
   const guideSlug = config.guide[0];
   const faqHtml = `<div class="faq-section guide-faq"><h2>자주 묻는 질문</h2>${config.faq.map(([q, a], index) => `<div class="faq-item${index === 0 ? " open" : ""}"><div class="faq-question"><span>Q. ${esc(q)}</span><span class="icon">⌄</span></div><div class="faq-answer"><div class="faq-answer-inner">${esc(a)}</div></div></div>`).join("")}</div>`;
   const body = `<section class="hero"><div class="container"><h1>${esc(config.title)}</h1><p>${esc(config.description)}</p></div></section>
+  ${categoryPopularPreviewHtml(config, slug, popularRows)}
   <section class="section"><div class="container"><h2 class="section-title">오늘 이후 편성 상품</h2>${cards}</div></section>
   <section class="section"><div class="container"><div class="content-page"><h2>구매 전 체크포인트</h2><p>${esc(config.description)} 방송 화면의 혜택 문구만 보고 바로 결제하기보다 공식 상품 페이지의 최종 조건을 함께 확인하는 것이 좋습니다.</p><ul>${config.points.map((point) => `<li>${esc(point)}</li>`).join("")}</ul><p>관련 기준을 더 자세히 보려면 <a href="/guide/${guideSlug}/">${esc(config.guide[1])}</a>를 함께 확인해 주세요.</p></div></div></section>
   <section class="section"><div class="container">${faqHtml}</div></section>`;
@@ -292,6 +294,12 @@ async function categoryLandingPage(slug, env) {
 function categoryNavActive(slug) {
   if (slug === "food" || slug === "health") return slug;
   return "schedule";
+}
+
+function categoryPopularPreviewHtml(config, slug, rows) {
+  if (!rows.length) return "";
+  const list = rows.map((item, index) => `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>${esc(config.heading)}</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`).join("");
+  return `<section class="section"><div class="container"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px;"><h2 class="section-title" style="margin-bottom:0;">인기 ${esc(config.heading)} TOP 6</h2><a href="/popular/${slug}/" class="btn-secondary">TOP 30 보기</a></div><div class="popular-list">${list}</div></div></section>`;
 }
 
 async function channelPage(env) {
