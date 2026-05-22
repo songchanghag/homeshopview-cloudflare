@@ -292,7 +292,7 @@ async function categoryLandingPage(slug, env) {
 }
 
 function categoryNavActive(slug) {
-  if (slug === "food" || slug === "health") return slug;
+  if (["food", "health", "kitchen", "fashion", "appliance"].includes(slug)) return slug;
   return "schedule";
 }
 
@@ -1417,7 +1417,7 @@ function htmlPage(title, body, env, options = {}) {
 }
 
 function header(active) {
-  const nav = [["schedule", "/", "📺 편성표"], ["popular", "/popular/", "🔥 인기"], ["food", "/category/food/", "🍱 식품"], ["health", "/category/health/", "💊 건강"], ["channel", "/channel/", "📡 채널"], ["guide", "/guide/", "📖 가이드"]];
+  const nav = [["schedule", "/", "📺 편성표"], ["popular", "/popular/", "🔥 인기"], ["food", "/category/food/", "🍱 식품"], ["health", "/category/health/", "💊 건강"], ["kitchen", "/category/kitchen/", "🍳 주방"], ["fashion", "/category/fashion/", "👗 패션"], ["appliance", "/category/appliance/", "🔌 가전"], ["channel", "/channel/", "📡 채널"], ["guide", "/guide/", "📖 가이드"]];
   return `<nav class="navbar"><div class="container"><a href="/" class="navbar-brand"><span class="owl-icon">🛍️</span> 홈쇼핑뷰 <span>공영홈쇼핑</span></a><button class="mobile-toggle" aria-label="메뉴">☰</button><ul class="nav-links">${nav.map(([key, href, label]) => `<li><a href="${href}" class="${active === key ? "active" : ""}">${label}</a></li>`).join("")}</ul></div></nav>`;
 }
 
