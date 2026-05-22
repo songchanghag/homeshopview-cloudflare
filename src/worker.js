@@ -283,10 +283,15 @@ async function categoryLandingPage(slug, env) {
   <section class="section"><div class="container"><div class="content-page"><h2>구매 전 체크포인트</h2><p>${esc(config.description)} 방송 화면의 혜택 문구만 보고 바로 결제하기보다 공식 상품 페이지의 최종 조건을 함께 확인하는 것이 좋습니다.</p><ul>${config.points.map((point) => `<li>${esc(point)}</li>`).join("")}</ul><p>관련 기준을 더 자세히 보려면 <a href="/guide/${guideSlug}/">${esc(config.guide[1])}</a>를 함께 확인해 주세요.</p></div></div></section>
   <section class="section"><div class="container">${faqHtml}</div></section>`;
   return htmlPage(`${config.title} - 홈쇼핑뷰`, body, env, {
-    active: "schedule",
+    active: categoryNavActive(slug),
     canonical: `/category/${slug}/`,
     description: config.description
   });
+}
+
+function categoryNavActive(slug) {
+  if (slug === "food" || slug === "health") return slug;
+  return "schedule";
 }
 
 async function channelPage(env) {
@@ -303,9 +308,10 @@ async function loadCategoryItems(env, slug, limit = 24, byViews = false) {
   const config = CATEGORY_PAGES[slug];
   if (!config) return [];
   const today = todayKst();
-  const clauses = config.keywords.map(() => "(category1 LIKE ? OR category2 LIKE ? OR category3 LIKE ? OR category4 LIKE ? OR name LIKE ?)");
+  const keywords = categoryKeywordVariants(config.keywords);
+  const clauses = keywords.map(() => "(category1 LIKE ? OR category2 LIKE ? OR category3 LIKE ? OR category4 LIKE ? OR name LIKE ?)");
   const params = [today];
-  for (const keyword of config.keywords) {
+  for (const keyword of keywords) {
     const value = `%${keyword}%`;
     params.push(value, value, value, value, value);
   }
@@ -313,6 +319,14 @@ async function loadCategoryItems(env, slug, limit = 24, byViews = false) {
   const order = byViews ? "views DESC, date ASC, start_time ASC" : "date ASC, start_time ASC, priority ASC";
   const sql = `SELECT * FROM schedule WHERE date >= ? AND (${clauses.join(" OR ")}) ORDER BY ${order} LIMIT ?`;
   return (await env.DB.prepare(sql).bind(...params).all()).results || [];
+}
+
+function categoryKeywordVariants(keywords) {
+  const variants = new Set();
+  for (const keyword of keywords) {
+    variants.add(encodeURIComponent(keyword));
+  }
+  return [...variants];
 }
 
 function emptyCategoryHtml(config) {
