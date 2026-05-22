@@ -35,7 +35,7 @@ async function handleRequest(request, env, ctx) {
   if (path === "/sitemap.xml") return sitemap(env);
   if (path === "/schedule") return redirect(new URL("/", url).toString(), 301);
   if (path === "/" || path === "") return schedulePage(request, env);
-  if (path === "/intro") return introPage(env);
+  if (path === "/intro") return introPageV2(env);
   if (path === "/popular") return popularPage(env);
   if (path === "/guide") return guideListPage(env);
   if (path.startsWith("/guide/")) return guideDetailPage(path.split("/").pop(), env);
@@ -157,6 +157,84 @@ async function popularPage(env) {
   if (!rows.length) rows = (await env.DB.prepare("SELECT * FROM schedule ORDER BY date DESC, start_time ASC LIMIT 50").all()).results || [];
   const list = rows.map((item, index) => `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>편성표</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`).join("");
   return htmlPage("오늘 인기 공영홈쇼핑 상품 TOP 50", `<section class="hero"><div class="container"><h1>🔥 오늘 인기 상품 TOP 50</h1><p>많이 조회된 공영홈쇼핑 방송 상품을 정리했습니다.</p></div></section><section class="section"><div class="container"><h2 class="section-title">조회수 기준 인기 상품</h2><div class="popular-list">${list}</div></div></section>`, env, { active: "popular", canonical: "/popular/" });
+}
+
+async function introPageV2(env) {
+  const channelRows = await loadChannelRows(env);
+  const body = `<section class="hero"><div class="container"><h1>홈쇼핑뷰 공영홈쇼핑 소개</h1><p>공공데이터 기반으로 공영홈쇼핑 편성표와 상품 정보를 보기 쉽게 정리합니다.</p></div></section>
+  <section class="section"><div class="container"><div class="content-page">
+    <h2>사이트 소개</h2>
+    <p>홈쇼핑뷰 공영홈쇼핑은 공공데이터포털에서 제공하는 공영홈쇼핑 TV편성 상품정보 API를 활용해 방송 일정, 상품명, 가격, 카테고리, 공식 구매 링크를 정리하는 정보 사이트입니다.</p>
+    <p>본 사이트는 공영홈쇼핑 공식 사이트가 아니며, 상품 판매나 결제를 직접 제공하지 않습니다. 최종 구매 조건은 공영홈쇼핑 공식 사이트에서 확인해 주세요.</p>
+
+    <h2>운영 목적</h2>
+    <p>소비자가 방송 시간과 상품 정보를 미리 확인하고, 무료배송이나 무이자 할부 같은 조건을 함께 비교할 수 있도록 돕는 것이 목적입니다. 방송 편성은 날짜와 시간에 따라 빠르게 바뀌기 때문에, 필요한 상품을 놓치지 않도록 한 화면에서 확인할 수 있게 구성했습니다.</p>
+
+    <h2>주요 기능</h2>
+    <ul>
+      <li>오늘부터 이후 편성표까지 날짜별 방송 일정 조회</li>
+      <li>상품별 가격, 방송 시간, 카테고리, 공식 구매 링크 제공</li>
+      <li>매일 자정 공공데이터 API를 통한 최신 편성 정보 자동 업데이트</li>
+      <li>많이 조회된 상품을 모아보는 인기 상품 페이지 제공</li>
+      <li>공영홈쇼핑 이용 가이드와 전국 방송 채널 안내 제공</li>
+    </ul>
+
+    <h2>데이터 출처</h2>
+    <p>방송 편성 및 상품 정보는 공공데이터포털(data.go.kr)의 공영홈쇼핑 TV편성 상품정보 API를 기반으로 정리합니다. API 원천 데이터와 실제 방송, 상품 판매 조건이 달라질 수 있으므로 최종 구매 전에는 공식 사이트의 안내를 확인해 주세요.</p>
+
+    <h2>운영 원칙</h2>
+    <p>홈쇼핑뷰는 편성 정보와 상품 정보를 보기 쉽게 정리하는 알림형 정보 사이트입니다. 특정 상품 구매를 강요하지 않으며, 가격과 혜택 정보는 소비자가 비교 판단할 수 있도록 보조 정보로 제공합니다.</p>
+
+    ${channelGuideHtml(channelRows)}
+  </div></div></section>`;
+  return htmlPage("홈쇼핑뷰 공영홈쇼핑 소개", body, env, {
+    active: "intro",
+    canonical: "/intro/",
+    description: "홈쇼핑뷰 공영홈쇼핑 소개, 운영 목적, 공공데이터 출처, 주요 기능, IPTV 및 케이블TV 전국 방송 채널 번호 안내."
+  });
+}
+
+async function loadChannelRows(env) {
+  const fallback = [
+    { region_group: "전국", area: "전국", analog_channel: "-", digital_channel: "22", operator: "KT Genie TV (구 olleh TV)" },
+    { region_group: "전국", area: "전국", analog_channel: "-", digital_channel: "21", operator: "SKB Btv" },
+    { region_group: "전국", area: "전국", analog_channel: "-", digital_channel: "21", operator: "LG U+ TV" },
+    { region_group: "전국", area: "전국", analog_channel: "-", digital_channel: "21", operator: "KT Skylife" }
+  ];
+  try {
+    const response = await env.ASSETS.fetch(new Request("https://homeshopview.com/channels.json"));
+    if (!response.ok) return fallback;
+    const rows = await response.json();
+    return Array.isArray(rows) && rows.length ? rows : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function channelGuideHtml(rows) {
+  const regions = [...new Set(rows.map((row) => row.region_group))];
+  const commonRows = rows.filter((row) => row.region_group === "전국").slice(0, 4);
+  const tabButtons = regions.map((region, index) => `<button class="region-tab${index === 0 ? " active" : ""}" data-region="${esc(region)}">${esc(region)}</button>`).join("");
+  const cableRows = rows.map((row) => `<tr data-region="${esc(row.region_group)}"${row.region_group === "전국" ? "" : " style=\"display:none\""}><td>${esc(row.area)}</td><td>${esc(row.analog_channel)}</td><td>${esc(row.digital_channel)}</td><td>${esc(row.operator)}</td></tr>`).join("");
+  const commonTableRows = commonRows.map((row) => `<tr><td>${esc(row.operator.includes("Skylife") ? "위성방송" : "IPTV")}</td><td>${esc(row.operator)}</td><td><strong style="color:var(--danger)">${esc(row.digital_channel)}</strong></td></tr>`).join("");
+  return `<div class="channel-section">
+    <h2 class="section-title">📡 전국 방송 채널 안내</h2>
+    <p style="font-size:0.95rem;color:var(--text-light);margin-bottom:20px;">공영홈쇼핑은 IPTV 및 케이블TV를 통해 전국에서 시청할 수 있습니다. IPTV와 위성방송은 전국 공통 번호를 우선 확인하고, 케이블TV는 지역 탭을 눌러 확인해 주세요.</p>
+
+    <h3 style="margin-bottom:12px;color:var(--primary-dark);font-size:1.1rem;">📺 IPTV 및 위성방송 전국 공통</h3>
+    <table class="channel-table" style="margin-bottom:30px;">
+      <thead><tr><th>종류</th><th>방송사</th><th>채널번호</th></tr></thead>
+      <tbody>${commonTableRows}</tbody>
+    </table>
+
+    <h3 style="margin-bottom:12px;color:var(--primary-dark);font-size:1.1rem;">지역별 케이블TV 채널번호</h3>
+    <div class="region-tabs">${tabButtons}</div>
+    <table class="channel-table cable-table">
+      <thead><tr><th>지역</th><th>아날로그/8VSB</th><th>디지털</th><th>케이블TV</th></tr></thead>
+      <tbody>${cableRows}</tbody>
+    </table>
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-top:12px;">※ 케이블TV 채널번호는 일부 지역 및 SO(종합유선방송사업자) 사정에 따라 위 표와 다를 수 있습니다. 정확한 채널번호는 해당 사업자 고객센터에서 확인해 주세요.</p>
+  </div>`;
 }
 
 function introPage(env) {
