@@ -30,6 +30,54 @@ const GUIDE_POSTS = [
   ["budget-guide", "홈쇼핑 충동구매 줄이는 예산 관리법", "방송 혜택에 흔들리지 않으려면 월 예산, 필요 상품 목록, 재구매 기준을 미리 정해 두는 것이 좋습니다."]
 ];
 
+const CATEGORY_PAGES = {
+  food: {
+    title: "식품 홈쇼핑 상품 모아보기",
+    heading: "식품 방송 상품",
+    description: "공영홈쇼핑 식품 편성 상품을 모아보고 중량, 원산지, 보관 방식, 소비기한, 배송 조건을 함께 확인하세요.",
+    keywords: ["식품", "농산", "수산", "축산", "김치", "쌀", "한우", "굴비", "과일", "반찬", "간편식"],
+    guide: ["food-guide", "식품 방송 상품 구매 가이드"],
+    points: ["총 중량과 개별 포장 단위를 확인합니다.", "원산지, 등급, 손질 상태를 비교합니다.", "냉장·냉동 배송과 수령 가능 시간을 확인합니다.", "소비기한과 보관 방법을 공식 상품 페이지에서 다시 확인합니다."],
+    faq: [["식품 홈쇼핑 상품은 가격만 비교해도 되나요?", "아니요. 식품은 총 중량, 실중량, 원산지, 보관 방식, 배송 조건을 함께 봐야 실제 만족도를 판단하기 쉽습니다."], ["냉동식품은 어떤 점을 확인해야 하나요?", "수령 가능 시간, 냉동 보관 공간, 해동 후 재냉동 가능 여부, 소비기한을 확인하는 것이 좋습니다."], ["방송 화면의 조리 예시는 실제 구성인가요?", "조리 예시는 연출 이미지일 수 있으므로 실제 구성품과 중량은 공식 상품 페이지의 상세 정보를 기준으로 확인해야 합니다."]]
+  },
+  health: {
+    title: "건강식품 방송 상품",
+    heading: "건강식품 편성 상품",
+    description: "공영홈쇼핑 건강식품 방송 상품을 모아보고 기능성 표현, 섭취 대상, 원료, 알레르기 성분, 공식 주의사항을 확인하세요.",
+    keywords: ["건강", "홍삼", "유산균", "비타민", "영양", "콜라겐", "오메가", "루테인", "프로폴리스"],
+    guide: ["health-guide", "건강식품 구매 전 확인사항"],
+    points: ["질병 치료 효과처럼 보이는 표현은 주의합니다.", "주요 성분의 1일 섭취량 기준 함량을 확인합니다.", "복용 중인 약이나 알레르기 성분과 충돌하지 않는지 확인합니다.", "총 포장 수보다 실제 섭취 가능 일수를 계산합니다."],
+    faq: [["건강식품 방송 상품은 효능이 보장되나요?", "아니요. 건강기능식품은 개인의 건강 상태와 섭취 습관에 따라 체감이 다를 수 있으며 질병 치료제로 이해하면 안 됩니다."], ["성분 함량은 어떻게 비교해야 하나요?", "총 용량보다 1일 섭취량 기준의 주요 성분 함량과 섭취 가능 일수를 기준으로 비교하는 것이 좋습니다."], ["부모님 선물로 건강식품을 사도 괜찮나요?", "복용 중인 약, 알레르기, 기저질환이 있을 수 있으므로 공식 주의사항을 확인하고 필요한 경우 전문가와 상담하는 것이 안전합니다."]]
+  },
+  kitchen: {
+    title: "주방용품 홈쇼핑 상품",
+    heading: "주방용품 편성 상품",
+    description: "공영홈쇼핑 주방용품 편성 상품을 모아보고 소재, 코팅, 크기, 구성품, 관리법, 반품 조건을 함께 확인하세요.",
+    keywords: ["주방", "프라이팬", "냄비", "칼", "도마", "용기", "조리", "후라이팬", "밀폐"],
+    guide: ["kitchenware-guide", "주방용품 홈쇼핑 구매 전 확인할 점"],
+    points: ["소재와 코팅 종류, 사용 가능한 열원을 확인합니다.", "실제로 자주 쓰는 크기와 구성인지 봅니다.", "인덕션, 식기세척기, 오븐 사용 가능 여부를 확인합니다.", "세트 구성품별 단가와 보관 공간을 함께 고려합니다."],
+    faq: [["주방용품 세트는 구성이 많을수록 좋은가요?", "반드시 그렇지는 않습니다. 실제로 자주 쓰는 크기와 소재가 포함되어 있는지 보는 것이 더 중요합니다."], ["코팅 제품은 무엇을 확인해야 하나요?", "사용 가능한 열원, 금속 조리도구 사용 가능 여부, 세척 방법, 코팅 관리법을 확인해야 오래 사용할 수 있습니다."], ["개봉 후 반품이 가능한가요?", "상품군과 공식 판매 조건에 따라 다르므로 개봉·사용 후 교환 및 반품 제한을 공식 상품 페이지에서 확인해야 합니다."]]
+  },
+  fashion: {
+    title: "패션·잡화 홈쇼핑 상품",
+    heading: "패션·잡화 편성 상품",
+    description: "공영홈쇼핑 패션·잡화 방송 상품을 모아보고 사이즈, 색상 차이, 소재, 세트 구성, 교환 조건을 확인하세요.",
+    keywords: ["패션", "의류", "신발", "가방", "잡화", "속옷", "여성", "남성", "사이즈"],
+    guide: ["fashion-guide", "패션 상품 사이즈 확인법"],
+    points: ["평소 사이즈보다 실측표를 기준으로 확인합니다.", "방송 화면 색상과 실제 색감이 다를 수 있음을 고려합니다.", "세트 구성의 개별 색상과 수량을 확인합니다.", "착용·세탁 후 교환 제한 여부를 확인합니다."],
+    faq: [["패션 상품은 평소 사이즈대로 사면 되나요?", "브랜드마다 기준이 다르므로 어깨, 가슴, 허리, 총장 같은 실측표를 기준으로 확인하는 것이 안전합니다."], ["화면 색상과 실제 색상이 다를 수 있나요?", "네. 조명과 화면 설정에 따라 달라질 수 있으므로 상세 이미지와 색상 설명을 함께 확인해야 합니다."], ["세트 의류는 일부만 반품할 수 있나요?", "대부분 세트 전체 기준으로 처리되는 경우가 많으므로 공식 교환·반품 조건을 먼저 확인해야 합니다."]]
+  },
+  appliance: {
+    title: "생활가전 홈쇼핑 상품",
+    heading: "생활가전 편성 상품",
+    description: "공영홈쇼핑 생활가전 방송 상품을 모아보고 AS, 설치 조건, 소비전력, 구성품, 모델명을 함께 확인하세요.",
+    keywords: ["가전", "청소기", "건조기", "냉장", "세탁", "마사지", "전자", "생활가전", "설치"],
+    guide: ["appliance-guide", "생활가전 홈쇼핑 구매 가이드"],
+    points: ["정확한 모델명과 출시 시기를 확인합니다.", "AS 기간, 소모품 비용, 설치 조건을 확인합니다.", "설치 공간과 전원, 배수 등 환경 조건을 점검합니다.", "기본 구성품과 추가 구성품을 구분해서 봅니다."],
+    faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."]]
+  }
+};
+
 export default {
   async fetch(request, env, ctx) {
     return handleRequest(request, env, ctx);
@@ -50,11 +98,12 @@ async function handleRequest(request, env, ctx) {
   if (path === "/robots.txt") return text(robots(env), "text/plain; charset=utf-8");
   if (path === "/sitemap.xml") return sitemap(env);
   if (path === "/schedule") return redirect(new URL("/", url).toString(), 301);
-  if (path === "/about") return redirect(new URL("/intro/", url).toString(), 301);
-  if (path === "/guides") return redirect(new URL("/guide/", url).toString(), 301);
   if (path === "/" || path === "") return schedulePage(request, env);
   if (path === "/intro") return introPageV2(env);
   if (path === "/popular") return popularPage(env);
+  if (path.startsWith("/popular/")) return categoryPopularPage(path.split("/").pop(), env);
+  if (path.startsWith("/category/")) return categoryLandingPage(path.split("/").pop(), env);
+  if (path === "/channel") return channelPage(env);
   if (path === "/guide") return guideListPage(env);
   if (path.startsWith("/guide/")) return guideDetailPage(path.split("/").pop(), env);
   if (path === "/terms") return staticLegalPage("이용약관", termsHtml(), env);
@@ -208,6 +257,66 @@ async function popularPage(env) {
   const list = rows.map((item, index) => `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>편성표</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`).join("");
   const empty = `<div class="empty-state"><h3>현재 표시할 인기 상품이 없습니다.</h3><p>편성표 데이터가 갱신되면 현재 방송 예정 상품 기준으로 다시 표시됩니다.</p></div>`;
   return htmlPage("오늘 인기 공영홈쇼핑 상품 TOP 50", `<section class="hero"><div class="container"><h1>🔥 오늘 인기 상품 TOP 50</h1><p>현재 조회된 공영홈쇼핑 방송 상품을 정리했습니다.</p></div></section><section class="section"><div class="container"><h2 class="section-title">조회수 기준 인기 상품</h2><div class="popular-list">${list || empty}</div></div></section>`, env, { active: "popular", canonical: "/popular/" });
+}
+
+async function categoryPopularPage(slug, env) {
+  const config = CATEGORY_PAGES[slug];
+  if (!config) return htmlPage("인기 상품을 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 인기 상품 분류를 찾을 수 없습니다.</p><a class="btn-primary" href="/popular/">인기 상품 보기</a></div></div></section>`, env, { status: 404 });
+  const rows = await loadCategoryItems(env, slug, 30, true);
+  const list = rows.map((item, index) => `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>${esc(config.heading)}</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`).join("");
+  return htmlPage(`${config.heading} 인기 TOP 30 - 홈쇼핑뷰`, `<section class="hero"><div class="container"><h1>${esc(config.heading)} 인기 TOP 30</h1><p>조회수와 편성 정보를 기준으로 ${esc(config.heading)}을 정리했습니다.</p></div></section><section class="section"><div class="container"><div class="popular-list">${list || emptyCategoryHtml(config)}</div></div></section>`, env, {
+    active: "popular",
+    canonical: `/popular/${slug}/`,
+    description: `${config.heading} 인기 상품을 조회수 기준으로 확인하고 구매 전 체크포인트를 함께 살펴보세요.`
+  });
+}
+
+async function categoryLandingPage(slug, env) {
+  const config = CATEGORY_PAGES[slug];
+  if (!config) return htmlPage("상품군 페이지를 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 상품군 페이지를 찾을 수 없습니다.</p><a class="btn-primary" href="/">편성표 보기</a></div></div></section>`, env, { status: 404 });
+  const rows = await loadCategoryItems(env, slug, 24, false);
+  const cards = rows.length ? `<div class="schedule-list">${rows.map((item) => scheduleCard(item, item.date, [])).join("")}</div>` : emptyCategoryHtml(config);
+  const guideSlug = config.guide[0];
+  const faqHtml = `<div class="faq-section guide-faq"><h2>자주 묻는 질문</h2>${config.faq.map(([q, a], index) => `<div class="faq-item${index === 0 ? " open" : ""}"><div class="faq-question"><span>Q. ${esc(q)}</span><span class="icon">⌄</span></div><div class="faq-answer"><div class="faq-answer-inner">${esc(a)}</div></div></div>`).join("")}</div>`;
+  const body = `<section class="hero"><div class="container"><h1>${esc(config.title)}</h1><p>${esc(config.description)}</p></div></section>
+  <section class="section"><div class="container"><h2 class="section-title">오늘 이후 편성 상품</h2>${cards}</div></section>
+  <section class="section"><div class="container"><div class="content-page"><h2>구매 전 체크포인트</h2><p>${esc(config.description)} 방송 화면의 혜택 문구만 보고 바로 결제하기보다 공식 상품 페이지의 최종 조건을 함께 확인하는 것이 좋습니다.</p><ul>${config.points.map((point) => `<li>${esc(point)}</li>`).join("")}</ul><p>관련 기준을 더 자세히 보려면 <a href="/guide/${guideSlug}/">${esc(config.guide[1])}</a>를 함께 확인해 주세요.</p></div></div></section>
+  <section class="section"><div class="container">${faqHtml}</div></section>`;
+  return htmlPage(`${config.title} - 홈쇼핑뷰`, body, env, {
+    active: "schedule",
+    canonical: `/category/${slug}/`,
+    description: config.description
+  });
+}
+
+async function channelPage(env) {
+  const channelRows = await loadChannelRows(env);
+  const body = `<section class="hero"><div class="container"><h1>공영홈쇼핑 채널번호 안내</h1><p>IPTV와 케이블TV에서 공영홈쇼핑을 시청하는 방법과 지역별 채널번호를 확인하세요.</p></div></section><section class="section"><div class="container">${channelGuideHtml(channelRows)}</div></section>`;
+  return htmlPage("공영홈쇼핑 채널번호 안내 - 홈쇼핑뷰", body, env, {
+    active: "intro",
+    canonical: "/channel/",
+    description: "공영홈쇼핑 IPTV, 위성방송, 케이블TV 지역별 채널번호와 시청 방법을 안내합니다."
+  });
+}
+
+async function loadCategoryItems(env, slug, limit = 24, byViews = false) {
+  const config = CATEGORY_PAGES[slug];
+  if (!config) return [];
+  const today = todayKst();
+  const clauses = config.keywords.map(() => "(category1 LIKE ? OR category2 LIKE ? OR category3 LIKE ? OR category4 LIKE ? OR name LIKE ?)");
+  const params = [today];
+  for (const keyword of config.keywords) {
+    const value = `%${keyword}%`;
+    params.push(value, value, value, value, value);
+  }
+  params.push(limit);
+  const order = byViews ? "views DESC, date ASC, start_time ASC" : "date ASC, start_time ASC, priority ASC";
+  const sql = `SELECT * FROM schedule WHERE date >= ? AND (${clauses.join(" OR ")}) ORDER BY ${order} LIMIT ?`;
+  return (await env.DB.prepare(sql).bind(...params).all()).results || [];
+}
+
+function emptyCategoryHtml(config) {
+  return `<div class="empty-state"><h3>현재 표시할 ${esc(config.heading)}이 없습니다.</h3><p>편성 데이터가 갱신되면 해당 상품군의 방송 상품을 다시 정리합니다.</p></div>`;
 }
 
 async function introPageV2(env) {
@@ -1232,7 +1341,8 @@ async function sitemap(env) {
   let rows = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE date >= ? ORDER BY date ASC, start_time ASC LIMIT 5000").bind(today).all()).results || [];
   if (!rows.length) rows = (await env.DB.prepare("SELECT date, item_code FROM schedule ORDER BY date DESC, start_time ASC LIMIT 5000").all()).results || [];
   const base = siteUrl(env);
-  const staticUrls = ["/", "/intro/", "/popular/", "/guide/", "/data-source/", "/editorial-policy/", "/terms/", "/privacy/", "/contact/", ...GUIDE_POSTS.map(([slug]) => `/guide/${slug}/`)];
+  const categoryUrls = Object.keys(CATEGORY_PAGES).flatMap((slug) => [`/category/${slug}/`, `/popular/${slug}/`]);
+  const staticUrls = ["/", "/intro/", "/popular/", "/channel/", "/guide/", "/data-source/", "/editorial-policy/", "/terms/", "/privacy/", "/contact/", ...categoryUrls, ...GUIDE_POSTS.map(([slug]) => `/guide/${slug}/`)];
   const urls = [...staticUrls.map((path) => `${base}${path.replace(/^\//, "")}`), ...rows.map((row) => `${base}schedule/${row.date}/${encodeURIComponent(row.item_code)}`)];
   return text(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((loc) => `  <url><loc>${escXml(loc)}</loc><lastmod>${new Date().toISOString().slice(0, 10)}</lastmod></url>`).join("\n")}\n</urlset>`, "application/xml; charset=utf-8");
 }
@@ -1285,12 +1395,12 @@ function htmlPage(title, body, env, options = {}) {
 }
 
 function header(active) {
-  const nav = [["schedule", "/", "📺 편성표"], ["intro", "/intro/", "🏠 소개"], ["popular", "/popular/", "🔥 인기"], ["guide", "/guide/", "📖 가이드"]];
+  const nav = [["schedule", "/", "📺 편성표"], ["popular", "/popular/", "🔥 인기"], ["food", "/category/food/", "🍱 식품"], ["health", "/category/health/", "💊 건강"], ["channel", "/channel/", "📡 채널"], ["guide", "/guide/", "📖 가이드"]];
   return `<nav class="navbar"><div class="container"><a href="/" class="navbar-brand"><span class="owl-icon">🛍️</span> 홈쇼핑뷰 <span>공영홈쇼핑</span></a><button class="mobile-toggle" aria-label="메뉴">☰</button><ul class="nav-links">${nav.map(([key, href, label]) => `<li><a href="${href}" class="${active === key ? "active" : ""}">${label}</a></li>`).join("")}</ul></div></nav>`;
 }
 
 function footer() {
-  return `<footer class="footer"><div class="container"><div class="footer-inner"><div class="footer-info"><h4>홈쇼핑뷰 공영홈쇼핑</h4><p>공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.<br>공공데이터 기반의 알뜰 쇼핑 정보 사이트입니다.</p></div><div class="footer-col"><h4>카테고리</h4><a href="/">편성표</a><a href="/intro/">소개</a><a href="/popular/">인기</a><a href="/guide/">가이드</a></div><div class="footer-col"><h4>안내</h4><p style="font-size:0.82rem;margin-bottom:6px;">사이트명 : 홈쇼핑뷰 공영홈쇼핑</p><p style="font-size:0.82rem;margin-bottom:6px;">데이터 출처 : 공공데이터포털(data.go.kr)</p><p style="font-size:0.82rem;margin-bottom:6px;">연락처 : <a href="tel:0507-2834-5978" style="color:var(--accent-light)">0507-2834-5978</a></p><p style="font-size:0.82rem;margin-bottom:6px;">이메일 : <span style="color:var(--accent-light)">songchanghag790@gmail.com</span></p><div class="footer-legal-links"><a href="/intro/">소개</a><a href="/data-source/">데이터 출처</a><a href="/editorial-policy/">운영 정책</a><a href="/terms/">이용약관</a><a href="/privacy/">개인정보처리방침</a><a href="/contact/">문의하기</a></div></div></div><div class="footer-bottom"><p>&copy; 2026 홈쇼핑뷰 공영홈쇼핑. All rights reserved.</p><p>편성 및 가격 정보는 변경될 수 있으니 최종 구매 전 공식 사이트에서 확인해 주세요.</p></div></div></footer>`;
+  return `<footer class="footer"><div class="container"><div class="footer-inner"><div class="footer-info"><h4>홈쇼핑뷰 공영홈쇼핑</h4><p>공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.<br>공공데이터 기반의 알뜰 쇼핑 정보 사이트입니다.</p></div><div class="footer-col"><h4>카테고리</h4><a href="/">편성표</a><a href="/popular/">인기</a><a href="/category/food/">식품</a><a href="/category/health/">건강식품</a><a href="/category/kitchen/">주방용품</a><a href="/category/fashion/">패션·잡화</a><a href="/category/appliance/">생활가전</a><a href="/channel/">채널번호</a><a href="/guide/">가이드</a></div><div class="footer-col"><h4>안내</h4><p style="font-size:0.82rem;margin-bottom:6px;">사이트명 : 홈쇼핑뷰 공영홈쇼핑</p><p style="font-size:0.82rem;margin-bottom:6px;">데이터 출처 : 공공데이터포털(data.go.kr)</p><p style="font-size:0.82rem;margin-bottom:6px;">연락처 : <a href="tel:0507-2834-5978" style="color:var(--accent-light)">0507-2834-5978</a></p><p style="font-size:0.82rem;margin-bottom:6px;">이메일 : <span style="color:var(--accent-light)">songchanghag790@gmail.com</span></p><div class="footer-legal-links"><a href="/intro/">소개</a><a href="/data-source/">데이터 출처</a><a href="/editorial-policy/">운영 정책</a><a href="/terms/">이용약관</a><a href="/privacy/">개인정보처리방침</a><a href="/contact/">문의하기</a></div></div></div><div class="footer-bottom"><p>&copy; 2026 홈쇼핑뷰 공영홈쇼핑. All rights reserved.</p><p>편성 및 가격 정보는 변경될 수 있으니 최종 구매 전 공식 사이트에서 확인해 주세요.</p></div></div></footer>`;
 }
 
 function detailSection(title, content) {
