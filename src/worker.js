@@ -50,6 +50,8 @@ async function handleRequest(request, env, ctx) {
   if (path === "/robots.txt") return text(robots(env), "text/plain; charset=utf-8");
   if (path === "/sitemap.xml") return sitemap(env);
   if (path === "/schedule") return redirect(new URL("/", url).toString(), 301);
+  if (path === "/about") return redirect(new URL("/intro/", url).toString(), 301);
+  if (path === "/guides") return redirect(new URL("/guide/", url).toString(), 301);
   if (path === "/" || path === "") return schedulePage(request, env);
   if (path === "/intro") return introPageV2(env);
   if (path === "/popular") return popularPage(env);
@@ -58,6 +60,8 @@ async function handleRequest(request, env, ctx) {
   if (path === "/terms") return staticLegalPage("이용약관", termsHtml(), env);
   if (path === "/privacy") return staticLegalPage("개인정보처리방침", privacyHtml(), env);
   if (path === "/contact") return staticLegalPage("문의하기", contactHtml(), env);
+  if (path === "/data-source") return staticLegalPage("데이터 출처", dataSourceHtml(), env, { canonical: "/data-source/" });
+  if (path === "/editorial-policy") return staticLegalPage("운영 정책", editorialPolicyHtml(), env, { canonical: "/editorial-policy/" });
 
   const productMatch = path.match(/^\/schedule\/(\d{8})\/([^/]+)$/);
   if (productMatch) return productPage(productMatch[1], productMatch[2], env, ctx);
@@ -1146,8 +1150,12 @@ function guideArticleData(title) {
   return common;
 }
 
-function staticLegalPage(title, content, env) {
-  return htmlPage(`${title} - 홈쇼핑뷰`, `<section class="section"><div class="container"><div class="content-page"><h1>${title}</h1>${content}</div></div></section>`, env, { canonical: `/${title === "이용약관" ? "terms" : title === "개인정보처리방침" ? "privacy" : "contact"}/` });
+function staticLegalPage(title, content, env, options = {}) {
+  const canonical = options.canonical || `/${title === "이용약관" ? "terms" : title === "개인정보처리방침" ? "privacy" : "contact"}/`;
+  return htmlPage(`${title} - 홈쇼핑뷰`, `<section class="section"><div class="container"><div class="content-page"><h1>${title}</h1>${content}</div></div></section>`, env, {
+    canonical,
+    description: options.description || `${title} 안내 페이지입니다. 홈쇼핑뷰의 데이터 출처, 운영 기준, 개인정보 및 문의 정보를 확인하세요.`
+  });
 }
 
 function termsHtml() {
@@ -1191,12 +1199,40 @@ function contactHtml() {
   <p><strong>기타 문의:</strong> 제휴, 광고, 기타 문의도 환영합니다.</p>`;
 }
 
+function dataSourceHtml() {
+  return `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:30px;">최종 수정: 2026년 5월 22일</p>
+  <h2>데이터 출처</h2>
+  <p>홈쇼핑뷰는 공공데이터포털(data.go.kr)에서 제공하는 공영홈쇼핑 방송 편성 API를 기반으로 편성표와 상품 정보를 정리합니다. 원천 데이터에는 방송 날짜, 방송 시간, 상품명, 가격, 이미지, 공식 구매 링크, 배송 및 카드 혜택 관련 항목이 포함될 수 있습니다.</p>
+  <h2>업데이트 기준</h2>
+  <p>편성 데이터는 Cloudflare Worker의 예약 실행을 통해 매일 갱신되며, 현재 날짜 이후의 편성 정보를 우선 노출합니다. 방송 편성은 공영홈쇼핑 사정에 따라 변경될 수 있으므로 실제 구매 전에는 공영홈쇼핑 공식 사이트에서 최종 조건을 확인해야 합니다.</p>
+  <h2>가공 방식</h2>
+  <p>원천 데이터를 그대로 나열하지 않고 날짜별 편성표, 방송 시간대, 상품 상세 페이지, 인기 상품, 관련 상품, 구매 전 확인사항 형태로 재구성합니다. 사용자는 방송 전 상품을 비교하고 가격, 배송, 반품 조건을 함께 확인할 수 있습니다.</p>
+  <h2>정확성 안내</h2>
+  <p>가격, 할인율, 무료배송, 무이자, 재고 상태는 방송과 공식 판매 페이지에서 달라질 수 있습니다. 홈쇼핑뷰는 비교와 탐색을 돕는 정보 사이트이며 상품 판매, 주문, 결제, 고객 상담을 직접 처리하지 않습니다.</p>
+  <h2>오류 제보</h2>
+  <p>편성 시간, 상품명, 가격, 링크가 실제와 다르다면 <a href="/contact/">문의하기</a>를 통해 알려 주세요. 확인 후 가능한 범위에서 빠르게 수정하겠습니다.</p>`;
+}
+
+function editorialPolicyHtml() {
+  return `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:30px;">최종 수정: 2026년 5월 22일</p>
+  <h2>운영 목적</h2>
+  <p>홈쇼핑뷰는 공영홈쇼핑 편성표와 상품 정보를 사용자가 한눈에 비교할 수 있도록 정리하는 정보 서비스입니다. 방송 중 구매를 서두르기보다 가격, 구성, 배송, 반품 조건을 함께 확인하도록 돕는 것을 목표로 합니다.</p>
+  <h2>콘텐츠 작성 기준</h2>
+  <p>가이드 콘텐츠는 홈쇼핑 상품을 구매하기 전 확인해야 할 기준을 중심으로 작성합니다. 특정 상품 구매를 무조건 권장하지 않으며, 상품군별 주의사항과 공식 사이트 확인 필요성을 함께 안내합니다.</p>
+  <h2>편집 원칙</h2>
+  <ul><li>공식 데이터와 확인 가능한 정보를 우선 사용합니다.</li><li>가격과 혜택은 최종 구매 조건이 아니라 참고 정보로 안내합니다.</li><li>소비자가 놓치기 쉬운 배송, 반품, 구성, AS 조건을 함께 설명합니다.</li><li>오류 제보가 접수되면 원천 데이터와 공식 페이지를 기준으로 확인합니다.</li></ul>
+  <h2>광고와 콘텐츠의 분리</h2>
+  <p>광고가 게재되더라도 편성표와 가이드 콘텐츠의 작성 기준은 유지됩니다. 광고 또는 외부 링크는 상품 정보의 정확성을 보장하지 않으며, 구매 결정은 공식 판매 페이지의 조건을 확인한 뒤 이용자가 직접 판단해야 합니다.</p>
+  <h2>비공식 사이트 안내</h2>
+  <p>홈쇼핑뷰는 공영홈쇼핑의 공식 운영 사이트가 아닙니다. 주문, 결제, 배송, 반품, 교환, 고객센터 업무는 공영홈쇼핑 공식 채널에서 처리됩니다.</p>`;
+}
+
 async function sitemap(env) {
   const today = todayKst();
   let rows = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE date >= ? ORDER BY date ASC, start_time ASC LIMIT 5000").bind(today).all()).results || [];
   if (!rows.length) rows = (await env.DB.prepare("SELECT date, item_code FROM schedule ORDER BY date DESC, start_time ASC LIMIT 5000").all()).results || [];
   const base = siteUrl(env);
-  const staticUrls = ["/", "/intro/", "/popular/", "/guide/", "/terms/", "/privacy/", "/contact/", ...GUIDE_POSTS.map(([slug]) => `/guide/${slug}/`)];
+  const staticUrls = ["/", "/intro/", "/popular/", "/guide/", "/data-source/", "/editorial-policy/", "/terms/", "/privacy/", "/contact/", ...GUIDE_POSTS.map(([slug]) => `/guide/${slug}/`)];
   const urls = [...staticUrls.map((path) => `${base}${path.replace(/^\//, "")}`), ...rows.map((row) => `${base}schedule/${row.date}/${encodeURIComponent(row.item_code)}`)];
   return text(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((loc) => `  <url><loc>${escXml(loc)}</loc><lastmod>${new Date().toISOString().slice(0, 10)}</lastmod></url>`).join("\n")}\n</urlset>`, "application/xml; charset=utf-8");
 }
@@ -1254,7 +1290,7 @@ function header(active) {
 }
 
 function footer() {
-  return `<footer class="footer"><div class="container"><div class="footer-inner"><div class="footer-info"><h4>홈쇼핑뷰 공영홈쇼핑</h4><p>공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.<br>공공데이터 기반의 알뜰 쇼핑 정보 사이트입니다.</p></div><div class="footer-col"><h4>카테고리</h4><a href="/">편성표</a><a href="/intro/">소개</a><a href="/popular/">인기</a><a href="/guide/">가이드</a></div><div class="footer-col"><h4>안내</h4><p style="font-size:0.82rem;margin-bottom:6px;">사이트명 : 홈쇼핑뷰 공영홈쇼핑</p><p style="font-size:0.82rem;margin-bottom:6px;">데이터 출처 : 공공데이터포털(data.go.kr)</p><p style="font-size:0.82rem;margin-bottom:6px;">연락처 : <a href="tel:0507-2834-5978" style="color:var(--accent-light)">0507-2834-5978</a></p><p style="font-size:0.82rem;margin-bottom:6px;">이메일 : <span style="color:var(--accent-light)">songchanghag790@gmail.com</span></p><div class="footer-legal-links"><a href="/intro/">소개</a><a href="/terms/">이용약관</a><a href="/privacy/">개인정보처리방침</a><a href="/contact/">문의하기</a></div></div></div><div class="footer-bottom"><p>&copy; 2026 홈쇼핑뷰 공영홈쇼핑. All rights reserved.</p><p>편성 및 가격 정보는 변경될 수 있으니 최종 구매 전 공식 사이트에서 확인해 주세요.</p></div></div></footer>`;
+  return `<footer class="footer"><div class="container"><div class="footer-inner"><div class="footer-info"><h4>홈쇼핑뷰 공영홈쇼핑</h4><p>공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.<br>공공데이터 기반의 알뜰 쇼핑 정보 사이트입니다.</p></div><div class="footer-col"><h4>카테고리</h4><a href="/">편성표</a><a href="/intro/">소개</a><a href="/popular/">인기</a><a href="/guide/">가이드</a></div><div class="footer-col"><h4>안내</h4><p style="font-size:0.82rem;margin-bottom:6px;">사이트명 : 홈쇼핑뷰 공영홈쇼핑</p><p style="font-size:0.82rem;margin-bottom:6px;">데이터 출처 : 공공데이터포털(data.go.kr)</p><p style="font-size:0.82rem;margin-bottom:6px;">연락처 : <a href="tel:0507-2834-5978" style="color:var(--accent-light)">0507-2834-5978</a></p><p style="font-size:0.82rem;margin-bottom:6px;">이메일 : <span style="color:var(--accent-light)">songchanghag790@gmail.com</span></p><div class="footer-legal-links"><a href="/intro/">소개</a><a href="/data-source/">데이터 출처</a><a href="/editorial-policy/">운영 정책</a><a href="/terms/">이용약관</a><a href="/privacy/">개인정보처리방침</a><a href="/contact/">문의하기</a></div></div></div><div class="footer-bottom"><p>&copy; 2026 홈쇼핑뷰 공영홈쇼핑. All rights reserved.</p><p>편성 및 가격 정보는 변경될 수 있으니 최종 구매 전 공식 사이트에서 확인해 주세요.</p></div></div></footer>`;
 }
 
 function detailSection(title, content) {
