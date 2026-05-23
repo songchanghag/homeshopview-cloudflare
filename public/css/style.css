@@ -759,6 +759,43 @@ a:hover { color: var(--accent); }
     margin-bottom: 8px;
 }
 
+.compare-product-grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+.compare-product-card {
+    display: block;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    color: var(--text);
+    text-decoration: none;
+}
+.compare-product-card strong,
+.compare-product-card span,
+.compare-product-card em {
+    display: block;
+}
+.compare-product-card strong {
+    margin-bottom: 5px;
+    color: var(--primary-dark);
+    font-weight: 800;
+}
+.compare-product-card span {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+.compare-product-card em {
+    margin-top: 6px;
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-style: normal;
+    font-weight: 700;
+}
+
 /* ===== FOOTER 3-column ===== */
 .footer-col {
     display: flex;

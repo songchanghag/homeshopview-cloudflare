@@ -238,6 +238,8 @@ async function productPage(date, itemCode, env, ctx) {
   const imgList = parseJson(item.img_list, []);
   const canonicalPath = `/schedule/${date}/${encodeURIComponent(itemCode)}`;
   const allowIndex = await isIndexableProduct(env, date, itemCode, item);
+  const relatedItems = related.results || [];
+  const similarProducts = await findSimilarActiveProducts(env, item, itemCode, 3);
 
   const body = `
     <section class="section" style="padding-top:20px;"><div class="container">
@@ -251,7 +253,9 @@ async function productPage(date, itemCode, env, ctx) {
           ${socialShareButtons(name, canonicalPath, env)}
         </div>
         <div class="summary-box"><h2>📋 상품 핵심 요약</h2><p><strong>${esc(name)}</strong>은 공영홈쇼핑에서 <strong>${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)}</strong> 시간대에 방송되는 <strong>${esc(decodeName(item.category1))}</strong> 상품입니다.</p><p>판매가는 <strong style="color:var(--danger);font-size:1.1em;">${price(item.price)}원</strong>이며 ${Number(item.free_shipping) ? "무료배송" : "배송비 별도"} 조건으로 표시됩니다. 실제 구매 전 공식 사이트의 최종 조건을 확인해 주세요.</p></div>
+        ${productBroadcastInsightHtml(item, name, relatedItems, cards)}
         ${productDecisionGuideHtml(item, name)}
+        ${similarProductComparisonHtml(item, name, similarProducts)}
         <div class="product-header">
           ${item.img ? `<div class="product-img-wrap"><img src="${esc(item.img)}" alt="${esc(name)}" loading="lazy"></div>` : ""}
           <div class="product-main-info"><h2>💰 가격 정보</h2><div style="margin-bottom:16px;">${Number(item.discount_rate) > 0 ? `<span style="font-size:0.9rem;color:var(--text-muted);text-decoration:line-through;">${price(item.orgin_price)}원</span><span class="discount-badge" style="margin-left:6px;">${item.discount_rate}%</span><br>` : ""}<span style="font-size:2rem;font-weight:800;color:var(--danger);">${price(item.price)}</span><span style="font-size:1.3rem;font-weight:600;color:var(--danger);">원</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">${Number(item.free_shipping) ? `<span class="tag tag-free">무료배송</span>` : ""}${Number(item.month) > 0 ? `<span class="tag tag-installment">무이자 ${item.month}개월</span>` : ""}</div>${cards.length ? `<h3 style="margin-top:18px;">카드 할인</h3>${cards.map((card) => `<div style="background:#f8f4ff;padding:8px 14px;border-radius:8px;margin-bottom:6px;"><strong>${esc(decodeName(card.name))}</strong> ${card.discount_rate || 0}% 할인</div>`).join("")}` : ""}</div>
@@ -260,8 +264,8 @@ async function productPage(date, itemCode, env, ctx) {
         ${detailSection("상품 카테고리 분류", `<p><strong>대분류:</strong> ${esc(decodeName(item.category1)) || "미분류"}</p><p><strong>중분류:</strong> ${esc(decodeName(item.category2)) || "미분류"}</p><p><strong>소분류:</strong> ${esc(decodeName(item.category3)) || "미분류"}</p><p><strong>세분류:</strong> ${esc(decodeName(item.category4)) || "미분류"}</p>`)}
         ${buyUrl ? detailSection("공식 사이트에서 구매하기", `<p>공영홈쇼핑 공식 사이트에서 상품의 상세 정보와 최종 구매 조건을 확인할 수 있습니다.</p><a href="${esc(buyUrl)}" target="_blank" rel="noopener" class="btn-apply">공영홈쇼핑 공식 사이트에서 보기 →</a>`) : ""}
         ${imgList.length ? detailSection("추가 상품 이미지", `<div style="display:flex;gap:12px;flex-wrap:wrap;">${imgList.map((img) => `<img src="${esc(img)}" alt="${esc(name)} 추가 이미지" style="width:180px;height:180px;object-fit:cover;border-radius:8px;" loading="lazy">`).join("")}</div>`) : ""}
-        ${(related.results || []).length ? detailSection("같은 시간대 관련 상품", `<div class="schedule-list">${(related.results || []).map((row) => scheduleCard(row, row.date, [])).join("")}</div>`) : ""}
-        ${productFaqHtml(item, name, cards, related.results || [])}
+        ${relatedItems.length ? detailSection("같은 시간대 관련 상품", `<div class="schedule-list">${relatedItems.map((row) => scheduleCard(row, row.date, [])).join("")}</div>`) : ""}
+        ${productFaqHtml(item, name, cards, relatedItems)}
       </div>
     </div></section>`;
 
@@ -299,6 +303,107 @@ async function isIndexableProduct(env, date, itemCode, item) {
     LIMIT 1
   `).bind(today, date, itemCode).first();
   return Boolean(row);
+}
+
+function productBroadcastInsightHtml(item, productName, relatedItems = [], cards = []) {
+  const categoryPath = [item.category1, item.category2, item.category3, item.category4].map(decodeName).filter(Boolean);
+  const categoryText = categoryPath.length ? categoryPath.join(" > ") : "분류 미정";
+  const productType = Number(item.main) ? "대표 상품" : "세트/관련 상품";
+  const installment = Number(item.month || 0);
+  const discount = Number(item.discount_rate || 0);
+  const priceValue = Number(item.price || 0);
+  const sameTimeText = relatedItems.length
+    ? Number(item.main)
+      ? `같은 시간대에 관련 상품 ${relatedItems.length}개가 함께 편성되어 있어 옵션, 사이즈, 구성 차이를 같이 비교하는 것이 좋습니다.`
+      : `이 상품은 같은 시간대 대표 상품과 함께 노출되는 관련 상품입니다. 단독 상품처럼 보더라도 구성, 가격, 옵션이 대표 상품과 다를 수 있습니다.`
+    : "현재 같은 시간대에 함께 표시할 관련 상품은 확인되지 않습니다.";
+  const priceSentence = discount > 0
+    ? `정상가 ${price(item.orgin_price)}원에서 ${discount}% 할인된 ${price(item.price)}원으로 표시되어 있습니다.`
+    : `판매가는 ${price(item.price)}원으로 표시되어 있습니다.`;
+  const paySentence = [
+    Number(item.free_shipping) ? "무료배송 표시가 있어 배송비 포함 여부를 확인하기 쉽습니다." : "배송비 조건은 공식 상품 페이지에서 다시 확인하는 편이 안전합니다.",
+    installment > 0 ? `무이자 ${installment}개월 조건이 표시되어 월 부담액을 나누어 계산해 볼 수 있습니다.` : "무이자 할부 정보가 표시되지 않았으므로 결제 단계의 카드 조건을 확인해야 합니다.",
+    cards.length ? `카드 할인 정보가 ${cards.length}건 있어 최종 결제수단에 따라 체감가가 달라질 수 있습니다.` : "별도 카드 할인 정보는 확인되지 않습니다."
+  ].join(" ");
+  const categorySentence = categoryPath.length >= 4
+    ? `분류는 ${esc(categoryText)}까지 확인되므로 같은 대분류 안에서도 세부 상품군 기준으로 비교해야 합니다.`
+    : `분류는 ${esc(categoryText)} 기준으로 확인되며, 세부 모델이나 구성은 공식 상세 페이지를 함께 보는 것이 좋습니다.`;
+
+  return `<div class="detail-section editorial-insight"><h2>이 상품을 볼 때 먼저 비교할 점</h2><div class="content-page" style="padding:0;"><p><strong>${esc(productName)}</strong>은 ${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)}에 방송되는 ${esc(productType)}입니다. ${categorySentence}</p><p>${esc(priceSentence)} ${esc(paySentence)}</p><p>${esc(sameTimeText)}</p></div></div>`;
+}
+
+async function findSimilarActiveProducts(env, item, currentItemCode, limit = 3) {
+  const today = todayKst();
+  const rows = (await env.DB.prepare(`
+    SELECT *
+    FROM schedule
+    WHERE date >= ?
+      AND main = 1
+      AND item_code != ?
+    ORDER BY date ASC, start_time ASC, priority ASC
+    LIMIT 500
+  `).bind(today, currentItemCode).all()).results || [];
+
+  const keywords = productNameKeywords(decodeName(item.name));
+  const category2 = decodeName(item.category2);
+  const category3 = decodeName(item.category3);
+  const category4 = decodeName(item.category4);
+  const scored = rows.map((row) => {
+    let score = 0;
+    const reasons = [];
+    if (category2 && decodeName(row.category2) === category2) {
+      score += 4;
+      reasons.push("중분류 일치");
+    }
+    if (category3 && decodeName(row.category3) === category3) {
+      score += 5;
+      reasons.push("소분류 일치");
+    }
+    if (category4 && decodeName(row.category4) === category4) {
+      score += 6;
+      reasons.push("세분류 일치");
+    }
+    const rowName = decodeName(row.name);
+    const matched = keywords.filter((keyword) => rowName.includes(keyword));
+    if (matched.length) {
+      score += Math.min(5, matched.length * 2);
+      reasons.push(`${matched.slice(0, 2).join(", ")} 키워드 일치`);
+    }
+    if (Number(row.free_shipping) === Number(item.free_shipping)) {
+      score += 1;
+      reasons.push("배송 조건 유사");
+    }
+    if (Math.abs(Number(row.price || 0) - Number(item.price || 0)) <= Math.max(10000, Number(item.price || 0) * 0.2)) {
+      score += 1;
+      reasons.push("가격대 유사");
+    }
+    if (score < 5) return null;
+    return { item: row, score, reasons: reasons.slice(0, 3) };
+  }).filter(Boolean);
+
+  scored.sort((a, b) => b.score - a.score || String(a.item.date).localeCompare(String(b.item.date)) || String(a.item.start_time).localeCompare(String(b.item.start_time)));
+  return scored.slice(0, limit);
+}
+
+function productNameKeywords(name) {
+  const stop = new Set(["공영", "홈쇼핑", "세트", "상품", "무료배송", "인기상품", "단독", "특가", "구성", "정품"]);
+  return String(name || "")
+    .replace(/[()[\]{}★☆「」\[\],/+*]/g, " ")
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 2 && !stop.has(word) && !/^\d+$/.test(word))
+    .slice(0, 8);
+}
+
+function similarProductComparisonHtml(item, productName, similarProducts = []) {
+  if (!similarProducts.length) return "";
+  const cards = similarProducts.map(({ item: row, reasons }) => `
+    <a class="compare-product-card" href="/schedule/${row.date}/${encodeURIComponent(row.item_code)}">
+      <strong>${esc(decodeName(row.name))}</strong>
+      <span>${esc([decodeName(row.category2), decodeName(row.category3), decodeName(row.category4)].filter(Boolean).join(" > "))}</span>
+      <em>${formatDate(row.date)} ${formatTime(row.start_time)} · ${price(row.price)}원 · ${esc(reasons.join(" / "))}</em>
+    </a>`).join("");
+  return `<div class="detail-section comparison-guide"><h2>비슷한 방송 상품과 비교 포인트</h2><div class="content-page" style="padding:0;"><p><strong>${esc(productName)}</strong>과 같은 세부 상품군 또는 가격대가 가까운 현재 이후 대표상품을 기준으로 비교했습니다. 상품명만 비슷해도 구성, 사이즈, 무료배송, 무이자 조건이 다를 수 있으므로 같은 기준으로 나란히 보는 것이 좋습니다.</p><div class="compare-product-grid">${cards}</div></div></div>`;
 }
 
 function productDecisionGuideHtml(item, productName) {
