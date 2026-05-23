@@ -77,7 +77,8 @@ const CATEGORY_PAGES = {
     faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."], ["생활가전 모델명은 왜 확인해야 하나요?", "비슷한 이름의 상품이라도 모델명에 따라 출시 시기, 성능, 부속품, AS 기준이 달라질 수 있습니다. 결제 전 공식 상세의 모델명을 기준으로 확인하세요."], ["소모품 비용도 구매 전에 봐야 하나요?", "필터, 브러시, 전용 세제, 배터리처럼 반복 구매가 필요한 소모품이 있으면 실제 유지 비용이 달라집니다. 본체 가격과 함께 계산하는 것이 좋습니다."]]
   }
 };
-const PAGE_CACHE_VERSION = "2026-05-23-rss";
+const PAGE_CACHE_VERSION = "2026-05-23-adsense";
+const ADSENSE_CLIENT_ID = "ca-pub-3819299014015793";
 
 export default {
   async fetch(request, env, ctx) {
@@ -1858,7 +1859,8 @@ function htmlPage(title, body, env, options = {}) {
   const description = options.description || "홈쇼핑뷰 공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.";
   const robotsMeta = options.robots ? `<meta name="robots" content="${esc(options.robots)}">` : "";
   const structuredData = structuredDataHtml(options.structuredData);
-  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260523" type="image/png" sizes="48x48"><link rel="shortcut icon" href="/favicon.ico?v=20260523"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260523"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}">${structuredData}<link rel="stylesheet" href="/css/style.css?v=20260523-adsense"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
+  const adsenseScript = `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}" crossorigin="anonymous"></script>`;
+  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260523" type="image/png" sizes="48x48"><link rel="shortcut icon" href="/favicon.ico?v=20260523"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260523"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}">${adsenseScript}${structuredData}<link rel="stylesheet" href="/css/style.css?v=20260523-adsense"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
   return new Response(page, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": status === 200 ? "public, max-age=300" : "no-store" } });
 }
 
