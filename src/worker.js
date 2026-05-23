@@ -77,7 +77,7 @@ const CATEGORY_PAGES = {
     faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."], ["생활가전 모델명은 왜 확인해야 하나요?", "비슷한 이름의 상품이라도 모델명에 따라 출시 시기, 성능, 부속품, AS 기준이 달라질 수 있습니다. 결제 전 공식 상세의 모델명을 기준으로 확인하세요."], ["소모품 비용도 구매 전에 봐야 하나요?", "필터, 브러시, 전용 세제, 배터리처럼 반복 구매가 필요한 소모품이 있으면 실제 유지 비용이 달라집니다. 본체 가격과 함께 계산하는 것이 좋습니다."]]
   }
 };
-const PAGE_CACHE_VERSION = "2026-05-23-content-links";
+const PAGE_CACHE_VERSION = "2026-05-23-seo-structured-data";
 
 export default {
   async fetch(request, env, ctx) {
@@ -120,6 +120,9 @@ async function handleRequest(request, env, ctx) {
   if (path === "/data-source") return staticLegalPage("데이터 출처", dataSourceHtml(), env, { canonical: "/data-source/", description: "홈쇼핑뷰 데이터 출처 안내입니다. 공공데이터포털 API, 갱신 주기, 편성표 가공 방식, 정확성 한계를 설명합니다." });
   if (path === "/editorial-policy") return staticLegalPage("운영 정책", editorialPolicyHtml(), env, { canonical: "/editorial-policy/", description: "홈쇼핑뷰 운영 정책입니다. 편성 정보 편집 기준, 광고와 콘텐츠 분리, 오류 제보 처리 원칙을 안내합니다." });
 
+  const dateMatch = path.match(/^\/schedule\/(\d{8})$/);
+  if (dateMatch) return cachedPage(request, ctx, () => schedulePage(request, env, dateMatch[1]));
+
   const productMatch = path.match(/^\/schedule\/(\d{8})\/([^/]+)$/);
   if (productMatch) return productPage(productMatch[1], productMatch[2], env, ctx);
 
@@ -147,7 +150,7 @@ async function cachedPage(request, ctx, producer, seconds = 300) {
   return response;
 }
 
-async function schedulePage(request, env) {
+async function schedulePage(request, env, forcedDate = "") {
   const url = new URL(request.url);
   const today = todayKst();
   let dates = await env.DB.prepare("SELECT DISTINCT date FROM schedule WHERE date >= ? ORDER BY date ASC LIMIT 10").bind(today).all();
@@ -156,15 +159,21 @@ async function schedulePage(request, env) {
     dates = await env.DB.prepare("SELECT DISTINCT date FROM schedule ORDER BY date DESC LIMIT 10").all();
     dateRows = (dates.results || []).reverse();
   }
-  const selectedDate = dateRows.some((row) => row.date === url.searchParams.get("date")) ? url.searchParams.get("date") : (dateRows[0]?.date || today);
+  const requestedDate = forcedDate || url.searchParams.get("date");
+  const selectedDate = dateRows.some((row) => row.date === requestedDate) ? requestedDate : (dateRows[0]?.date || today);
   const { results } = await env.DB.prepare("SELECT * FROM schedule WHERE date = ? ORDER BY start_time ASC, priority ASC").bind(selectedDate).all();
   const slots = groupSlots(results || []);
+  const canonicalPath = forcedDate ? `/schedule/${selectedDate}/` : "/";
+  const pageTitle = forcedDate
+    ? `${formatDate(selectedDate)} 공영홈쇼핑 편성표 | TV 방송 시간·상품 가격`
+    : "공영홈쇼핑 편성표 | 오늘 TV 방송 시간·상품 가격";
 
   const dateButtons = dateRows.map((row) => {
     const active = row.date === selectedDate ? " active" : "";
     const todayClass = row.date === today ? " today" : "";
     const todayLabel = row.date === today ? `<br><span style="font-size:0.7rem;opacity:0.8;">오늘</span>` : "";
-    return `<a href="/?date=${row.date}" class="date-btn${active}${todayClass}">${formatDateShort(row.date)}${todayLabel}</a>`;
+    const href = row.date === today ? "/" : `/schedule/${row.date}/`;
+    return `<a href="${href}" class="date-btn${active}${todayClass}">${formatDateShort(row.date)}${todayLabel}</a>`;
   }).join("");
 
   const cards = slots.length ? slots.map((slot) => scheduleCard(slot.main, selectedDate, slot.subs)).join("") : `<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><p style="font-size:1.5rem;">편성 정보가 없습니다.</p></div>`;
@@ -177,10 +186,11 @@ async function schedulePage(request, env) {
       <div class="schedule-list">${cards}</div>
     </div></section>
   `;
-  return htmlPage(`공영홈쇼핑 TV 편성표 - ${formatDate(selectedDate)}`, body, env, {
+  return htmlPage(pageTitle, body, env, {
     description: "공영홈쇼핑 TV 편성표, 방송 시간, 상품 가격, 무료배송과 무이자 혜택을 한눈에 확인하세요.",
     active: "schedule",
-    canonical: "/"
+    canonical: canonicalPath,
+    structuredData: scheduleStructuredData(selectedDate, slots, canonicalPath, env)
   });
 }
 
@@ -249,7 +259,8 @@ async function productPage(date, itemCode, env, ctx) {
   return htmlPage(`${name} - ${formatDate(item.date)} 공영홈쇼핑 편성표`, body, env, {
     description: `${name} 공영홈쇼핑 ${formatDate(item.date)} ${formatTime(item.start_time)} 방송 상품 정보, 가격 ${price(item.price)}원, 카테고리 ${decodeName(item.category1)}.`,
     canonical: canonicalPath,
-    active: "schedule"
+    active: "schedule",
+    structuredData: productStructuredData(item, name, canonicalPath, buyUrl, env)
   });
 }
 
@@ -1582,12 +1593,191 @@ async function sitemap(env) {
   const base = siteUrl(env);
   const categoryUrls = Object.keys(CATEGORY_PAGES).flatMap((slug) => [`/category/${slug}/`, `/popular/${slug}/`]);
   const staticUrls = ["/", "/intro/", "/popular/", "/channel/", "/guide/", "/data-source/", "/editorial-policy/", "/terms/", "/privacy/", "/contact/", ...categoryUrls, ...GUIDE_POSTS.map(([slug]) => `/guide/${slug}/`)];
-  const urls = [...staticUrls.map((path) => `${base}${path.replace(/^\//, "")}`), ...rows.map((row) => `${base}schedule/${row.date}/${encodeURIComponent(row.item_code)}`)];
+  const dateUrls = [...new Set(rows.map((row) => row.date))].map((date) => `${base}schedule/${date}/`);
+  const urls = [...staticUrls.map((path) => `${base}${path.replace(/^\//, "")}`), ...dateUrls, ...rows.map((row) => `${base}schedule/${row.date}/${encodeURIComponent(row.item_code)}`)];
   return text(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((loc) => `  <url><loc>${escXml(loc)}</loc><lastmod>${new Date().toISOString().slice(0, 10)}</lastmod></url>`).join("\n")}\n</urlset>`, "application/xml; charset=utf-8");
 }
 
 function robots(env) {
   return `User-agent: *\nDisallow: /cdn-cgi/\nAllow: /\n\nSitemap: ${siteUrl(env)}sitemap.xml\n`;
+}
+
+function scheduleStructuredData(date, slots, canonicalPath, env) {
+  const site = siteUrl(env).replace(/\/$/, "");
+  const pageUrl = new URL(canonicalPath.replace(/^\//, ""), siteUrl(env)).toString();
+  const listItems = slots
+    .filter((slot) => slot.main)
+    .slice(0, 50)
+    .map((slot, index) => {
+      const item = slot.main;
+      const name = decodeName(item.name);
+      return {
+        "@type": "ListItem",
+        position: index + 1,
+        url: new URL(`schedule/${item.date}/${encodeURIComponent(item.item_code)}`, siteUrl(env)).toString(),
+        name,
+        item: {
+          "@type": "Event",
+          name: `${name} 공영홈쇼핑 방송`,
+          startDate: kstDateTime(item.date, item.start_time),
+          endDate: kstDateTime(item.date, item.end_time),
+          eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+          eventStatus: "https://schema.org/EventScheduled",
+          location: {
+            "@type": "VirtualLocation",
+            url: site
+          },
+          organizer: {
+            "@type": "Organization",
+            name: "공영홈쇼핑",
+            url: "https://www.gongyoungshop.kr/"
+          }
+        }
+      };
+    });
+
+  return [
+    organizationSchema(env),
+    websiteSchema(env),
+    breadcrumbSchema([
+      ["홈", "/"],
+      [`${formatDate(date)} 편성표`, canonicalPath]
+    ], env),
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: "공영홈쇼핑 편성표",
+      description: "공영홈쇼핑 TV 방송 시간, 상품 가격, 무료배송과 무이자 혜택을 날짜별로 확인할 수 있습니다.",
+      url: pageUrl,
+      isPartOf: {
+        "@type": "WebSite",
+        name: env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑",
+        url: siteUrl(env)
+      },
+      mainEntity: {
+        "@type": "ItemList",
+        name: `${formatDate(date)} 공영홈쇼핑 TV 편성표`,
+        itemListOrder: "https://schema.org/ItemListOrderAscending",
+        numberOfItems: listItems.length,
+        itemListElement: listItems
+      }
+    }
+  ];
+}
+
+function productStructuredData(item, name, canonicalPath, buyUrl, env) {
+  const pageUrl = new URL(canonicalPath.replace(/^\//, ""), siteUrl(env)).toString();
+  const product = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name,
+    image: imageArray(item),
+    description: `${name} 공영홈쇼핑 ${formatDate(item.date)} ${formatTime(item.start_time)} 방송 상품 정보입니다.`,
+    sku: String(item.item_code || ""),
+    category: [decodeName(item.category1), decodeName(item.category2), decodeName(item.category3), decodeName(item.category4)].filter(Boolean).join(" > "),
+    brand: {
+      "@type": "Brand",
+      name: "공영홈쇼핑"
+    },
+    offers: {
+      "@type": "Offer",
+      url: buyUrl || pageUrl,
+      priceCurrency: "KRW",
+      price: Number(item.price || 0),
+      availability: Number(item.soldout) ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: {
+        "@type": "Organization",
+        name: "공영홈쇼핑"
+      }
+    }
+  };
+
+  return [
+    organizationSchema(env),
+    breadcrumbSchema([
+      ["홈", "/"],
+      ["편성표", "/"],
+      [name, canonicalPath]
+    ], env),
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: `${name} - 공영홈쇼핑 편성표`,
+      url: pageUrl,
+      mainEntity: product
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BroadcastEvent",
+      name: `${name} 공영홈쇼핑 방송`,
+      startDate: kstDateTime(item.date, item.start_time),
+      endDate: kstDateTime(item.date, item.end_time),
+      isLiveBroadcast: Boolean(Number(item.is_live_sale)),
+      publishedOn: {
+        "@type": "BroadcastService",
+        name: "공영홈쇼핑 TV"
+      },
+      workPerformed: product
+    }
+  ];
+}
+
+function organizationSchema(env) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑",
+    url: siteUrl(env),
+    logo: new URL("favicon.png?v=20260523", siteUrl(env)).toString(),
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "0507-2834-5978",
+      contactType: "customer support",
+      areaServed: "KR",
+      availableLanguage: "ko"
+    }
+  };
+}
+
+function websiteSchema(env) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑",
+    url: siteUrl(env),
+    inLanguage: "ko-KR"
+  };
+}
+
+function breadcrumbSchema(items, env) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map(([name, path], index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name,
+      item: new URL(path.replace(/^\//, ""), siteUrl(env)).toString()
+    }))
+  };
+}
+
+function structuredDataHtml(data) {
+  const items = Array.isArray(data) ? data.filter(Boolean) : [data].filter(Boolean);
+  return items.map((item) => `<script type="application/ld+json">${JSON.stringify(item).replace(/</g, "\\u003c")}</script>`).join("");
+}
+
+function imageArray(item) {
+  const images = [item.img, ...parseJson(item.img_list, [])].filter(Boolean);
+  return [...new Set(images)];
+}
+
+function kstDateTime(date, time) {
+  const day = String(date || "");
+  const clock = String(time || "").padStart(4, "0");
+  if (day.length !== 8) return undefined;
+  return `${day.slice(0, 4)}-${day.slice(4, 6)}-${day.slice(6, 8)}T${clock.slice(0, 2)}:${clock.slice(2, 4)}:00+09:00`;
 }
 
 async function runDailyUpdate(env) {
@@ -1629,7 +1819,8 @@ function htmlPage(title, body, env, options = {}) {
   const canonical = new URL((options.canonical || "/").replace(/^\//, ""), siteUrl(env)).toString();
   const description = options.description || "홈쇼핑뷰 공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.";
   const robotsMeta = options.robots ? `<meta name="robots" content="${esc(options.robots)}">` : "";
-  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260523" type="image/png" sizes="48x48"><link rel="shortcut icon" href="/favicon.ico?v=20260523"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260523"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}"><link rel="stylesheet" href="/css/style.css?v=20260523-adsense"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
+  const structuredData = structuredDataHtml(options.structuredData);
+  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260523" type="image/png" sizes="48x48"><link rel="shortcut icon" href="/favicon.ico?v=20260523"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260523"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}">${structuredData}<link rel="stylesheet" href="/css/style.css?v=20260523-adsense"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
   return new Response(page, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": status === 200 ? "public, max-age=300" : "no-store" } });
 }
 
