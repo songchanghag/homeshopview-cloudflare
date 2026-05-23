@@ -79,6 +79,7 @@ const CATEGORY_PAGES = {
 };
 const PAGE_CACHE_VERSION = "2026-05-23-adsense";
 const ADSENSE_CLIENT_ID = "ca-pub-3819299014015793";
+const ADSENSE_PUBLISHER_ID = "pub-3819299014015793";
 
 export default {
   async fetch(request, env, ctx) {
@@ -105,6 +106,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (path === "/robots.txt") return text(robots(env), "text/plain; charset=utf-8");
+  if (path === "/ads.txt") return text(`google.com, ${ADSENSE_PUBLISHER_ID}, DIRECT, f08c47fec0942fa0\n`, "text/plain; charset=utf-8");
   if (path === "/sitemap.xml") return sitemap(env);
   if (path === "/rss" || path === "/rss.xml") return rssFeed(env);
   if (path === "/schedule") return redirect(new URL("/", url).toString(), 301);
