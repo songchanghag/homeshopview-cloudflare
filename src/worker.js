@@ -30,6 +30,8 @@ const GUIDE_POSTS = [
   ["budget-guide", "홈쇼핑 충동구매 줄이는 예산 관리법", "방송 혜택에 흔들리지 않으려면 월 예산, 필요 상품 목록, 재구매 기준을 미리 정해 두는 것이 좋습니다."]
 ];
 
+const INDEXABLE_PRODUCT_LIMIT = 300;
+
 const CATEGORY_PAGES = {
   food: {
     title: "식품 홈쇼핑 상품 모아보기",
@@ -235,6 +237,7 @@ async function productPage(date, itemCode, env, ctx) {
   const cards = parseJson(item.cards, []);
   const imgList = parseJson(item.img_list, []);
   const canonicalPath = `/schedule/${date}/${encodeURIComponent(itemCode)}`;
+  const allowIndex = await isIndexableProduct(env, date, itemCode, item);
 
   const body = `
     <section class="section" style="padding-top:20px;"><div class="container">
@@ -266,6 +269,7 @@ async function productPage(date, itemCode, env, ctx) {
     description: `${name} 공영홈쇼핑 ${formatDate(item.date)} ${formatTime(item.start_time)} 방송 상품 정보, 가격 ${price(item.price)}원, 카테고리 ${decodeName(item.category1)}.`,
     canonical: canonicalPath,
     active: "schedule",
+    robots: allowIndex ? "" : "noindex, follow",
     structuredData: productStructuredData(item, name, canonicalPath, buyUrl, env)
   });
 }
@@ -281,6 +285,20 @@ function socialShareButtons(title, path, env) {
     <a class="share-btn share-band" href="https://band.us/plugin/share?body=${encodedTitle}%0A${encodedUrl}&route=${encodeURIComponent(siteUrl(env))}" target="_blank" rel="noopener" aria-label="밴드 공유">b</a>
     <button type="button" class="share-btn share-copy" data-copy-url="${esc(url)}" aria-label="링크 복사">⧉</button>
   </div>`;
+}
+
+async function isIndexableProduct(env, date, itemCode, item) {
+  if (!item || !Number(item.main)) return false;
+  const today = todayKst();
+  if (date < today) return false;
+  const row = await env.DB.prepare(`
+    SELECT 1
+    FROM schedule
+    WHERE date >= ? AND main = 1 AND date = ? AND item_code = ?
+    ORDER BY date ASC, start_time ASC, priority ASC
+    LIMIT 1
+  `).bind(today, date, itemCode).first();
+  return Boolean(row);
 }
 
 function productDecisionGuideHtml(item, productName) {
@@ -422,7 +440,7 @@ async function popularPage(env) {
 
 async function categoryPopularPage(slug, env) {
   const config = CATEGORY_PAGES[slug];
-  if (!config) return htmlPage("인기 상품을 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 인기 상품 분류를 찾을 수 없습니다.</p><a class="btn-primary" href="/popular/">인기 상품 보기</a></div></div></section>`, env, { status: 404 });
+  if (!config) return htmlPage("인기 상품을 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 인기 상품 분류를 찾을 수 없습니다.</p><a class="btn-primary" href="/popular/">인기 상품 보기</a></div></div></section>`, env, { status: 404, robots: "noindex, follow" });
   const rows = await loadCategoryItems(env, slug, 120, true);
   const slots = groupCategorySlots(rows).slice(0, 30);
   const list = slots.map((slot, index) => popularSlotCard(slot, config, index)).join("");
@@ -435,7 +453,7 @@ async function categoryPopularPage(slug, env) {
 
 async function categoryLandingPage(slug, env) {
   const config = CATEGORY_PAGES[slug];
-  if (!config) return htmlPage("상품군 페이지를 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 상품군 페이지를 찾을 수 없습니다.</p><a class="btn-primary" href="/">편성표 보기</a></div></div></section>`, env, { status: 404 });
+  if (!config) return htmlPage("상품군 페이지를 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 상품군 페이지를 찾을 수 없습니다.</p><a class="btn-primary" href="/">편성표 보기</a></div></div></section>`, env, { status: 404, robots: "noindex, follow" });
   const rows = await loadCategoryItems(env, slug, 120, false);
   const popularRows = await loadCategoryItems(env, slug, 80, true);
   const slots = groupCategorySlots(rows).slice(0, 24);
@@ -1594,8 +1612,8 @@ function editorialPolicyHtml() {
 
 async function sitemap(env) {
   const today = todayKst();
-  let rows = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE date >= ? ORDER BY date ASC, start_time ASC LIMIT 5000").bind(today).all()).results || [];
-  if (!rows.length) rows = (await env.DB.prepare("SELECT date, item_code FROM schedule ORDER BY date DESC, start_time ASC LIMIT 5000").all()).results || [];
+  let rows = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE date >= ? AND main = 1 ORDER BY date ASC, start_time ASC, priority ASC LIMIT ?").bind(today, INDEXABLE_PRODUCT_LIMIT).all()).results || [];
+  if (!rows.length) rows = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE main = 1 ORDER BY date DESC, start_time ASC, priority ASC LIMIT ?").bind(INDEXABLE_PRODUCT_LIMIT).all()).results || [];
   const base = siteUrl(env);
   const categoryUrls = Object.keys(CATEGORY_PAGES).flatMap((slug) => [`/category/${slug}/`, `/popular/${slug}/`]);
   const staticUrls = ["/", "/intro/", "/popular/", "/channel/", "/guide/", "/data-source/", "/editorial-policy/", "/terms/", "/privacy/", "/contact/", ...categoryUrls, ...GUIDE_POSTS.map(([slug]) => `/guide/${slug}/`)];
