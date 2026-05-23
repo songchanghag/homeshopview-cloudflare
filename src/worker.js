@@ -77,7 +77,7 @@ const CATEGORY_PAGES = {
     faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."], ["생활가전 모델명은 왜 확인해야 하나요?", "비슷한 이름의 상품이라도 모델명에 따라 출시 시기, 성능, 부속품, AS 기준이 달라질 수 있습니다. 결제 전 공식 상세의 모델명을 기준으로 확인하세요."], ["소모품 비용도 구매 전에 봐야 하나요?", "필터, 브러시, 전용 세제, 배터리처럼 반복 구매가 필요한 소모품이 있으면 실제 유지 비용이 달라집니다. 본체 가격과 함께 계산하는 것이 좋습니다."]]
   }
 };
-const PAGE_CACHE_VERSION = "2026-05-23-seo-structured-data";
+const PAGE_CACHE_VERSION = "2026-05-23-schedule-title";
 
 export default {
   async fetch(request, env, ctx) {
@@ -165,8 +165,10 @@ async function schedulePage(request, env, forcedDate = "") {
   const slots = groupSlots(results || []);
   const canonicalPath = forcedDate ? `/schedule/${selectedDate}/` : "/";
   const pageTitle = forcedDate
-    ? `${formatDate(selectedDate)} 공영홈쇼핑 편성표 | TV 방송 시간·상품 가격`
+    ? `공영홈쇼핑 편성표 ${formatDate(selectedDate)} | TV 방송 시간·상품 가격`
     : "공영홈쇼핑 편성표 | 오늘 TV 방송 시간·상품 가격";
+  const heroTitle = forcedDate ? `${formatDate(selectedDate)} 공영홈쇼핑 TV 편성표` : "공영홈쇼핑 TV 편성표";
+  const heroText = forcedDate ? `${formatDate(selectedDate)} 방송 일정과 상품 가격, 배송 혜택을 한눈에 확인하세요.` : "오늘의 방송 일정과 상품 정보를 한눈에 확인하세요.";
 
   const dateButtons = dateRows.map((row) => {
     const active = row.date === selectedDate ? " active" : "";
@@ -179,7 +181,7 @@ async function schedulePage(request, env, forcedDate = "") {
   const cards = slots.length ? slots.map((slot) => scheduleCard(slot.main, selectedDate, slot.subs)).join("") : `<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><p style="font-size:1.5rem;">편성 정보가 없습니다.</p></div>`;
 
   const body = `
-    <section class="hero"><div class="container"><h1>📺 공영홈쇼핑 TV 편성표</h1><p>오늘의 방송 일정과 상품 정보를 한눈에 확인하세요.</p></div></section>
+    <section class="hero"><div class="container"><h1>📺 ${heroTitle}</h1><p>${heroText}</p></div></section>
     <section class="section"><div class="container">
       <div class="date-selector">${dateButtons}</div>
       <h2 class="section-title">📅 ${formatDate(selectedDate)} 편성표</h2>
