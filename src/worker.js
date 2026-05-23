@@ -92,6 +92,13 @@ async function handleRequest(request, env, ctx) {
   const url = new URL(request.url);
   const path = normalizePath(url.pathname);
 
+  if (path === "/favicon.ico") {
+    const favicon = await env.ASSETS.fetch(new Request(new URL("/favicon.png", url).toString(), request));
+    return new Response(favicon.body, {
+      status: favicon.status,
+      headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" }
+    });
+  }
   if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/favicon") || path === "/apple-touch-icon.png" || path === "/og-image.png") {
     return env.ASSETS.fetch(request);
   }
@@ -1622,7 +1629,7 @@ function htmlPage(title, body, env, options = {}) {
   const canonical = new URL((options.canonical || "/").replace(/^\//, ""), siteUrl(env)).toString();
   const description = options.description || "홈쇼핑뷰 공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.";
   const robotsMeta = options.robots ? `<meta name="robots" content="${esc(options.robots)}">` : "";
-  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260522" type="image/png"><link rel="shortcut icon" href="/favicon.png?v=20260522" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260522"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><link rel="stylesheet" href="/css/style.css?v=20260523-adsense"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
+  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260523" type="image/png" sizes="48x48"><link rel="shortcut icon" href="/favicon.ico?v=20260523"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260523"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260523", siteUrl(env)).toString())}"><link rel="stylesheet" href="/css/style.css?v=20260523-adsense"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
   return new Response(page, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": status === 200 ? "public, max-age=300" : "no-store" } });
 }
 
