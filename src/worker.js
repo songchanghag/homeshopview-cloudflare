@@ -77,6 +77,7 @@ const CATEGORY_PAGES = {
     faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."]]
   }
 };
+const PAGE_CACHE_VERSION = "2026-05-23-trust-pages";
 
 export default {
   async fetch(request, env, ctx) {
@@ -106,11 +107,11 @@ async function handleRequest(request, env, ctx) {
   if (path === "/channel") return cachedPage(request, ctx, () => channelPage(env), 1800);
   if (path === "/guide") return cachedPage(request, ctx, () => guideListPage(env), 1800);
   if (path.startsWith("/guide/")) return cachedPage(request, ctx, () => guideDetailPage(path.split("/").pop(), env), 1800);
-  if (path === "/terms") return staticLegalPage("이용약관", termsHtml(), env);
-  if (path === "/privacy") return staticLegalPage("개인정보처리방침", privacyHtml(), env);
-  if (path === "/contact") return staticLegalPage("문의하기", contactHtml(), env);
-  if (path === "/data-source") return staticLegalPage("데이터 출처", dataSourceHtml(), env, { canonical: "/data-source/" });
-  if (path === "/editorial-policy") return staticLegalPage("운영 정책", editorialPolicyHtml(), env, { canonical: "/editorial-policy/" });
+  if (path === "/terms") return staticLegalPage("이용약관", termsHtml(), env, { description: "홈쇼핑뷰 이용약관입니다. 편성표 정보 제공 범위, 공식 사이트 확인 책임, 광고와 외부 링크 이용 기준을 안내합니다." });
+  if (path === "/privacy") return staticLegalPage("개인정보처리방침", privacyHtml(), env, { description: "홈쇼핑뷰 개인정보처리방침입니다. 비회원 정보 이용, 접속 로그, 쿠키, 광고 서비스와 문의 처리 기준을 안내합니다." });
+  if (path === "/contact") return staticLegalPage("문의하기", contactHtml(), env, { description: "홈쇼핑뷰 문의 및 오류 제보 안내입니다. 편성표 오류, 상품 정보 수정 요청, 사이트 개선 의견을 보내는 방법을 확인하세요." });
+  if (path === "/data-source") return staticLegalPage("데이터 출처", dataSourceHtml(), env, { canonical: "/data-source/", description: "홈쇼핑뷰 데이터 출처 안내입니다. 공공데이터포털 API, 갱신 주기, 편성표 가공 방식, 정확성 한계를 설명합니다." });
+  if (path === "/editorial-policy") return staticLegalPage("운영 정책", editorialPolicyHtml(), env, { canonical: "/editorial-policy/", description: "홈쇼핑뷰 운영 정책입니다. 편성 정보 편집 기준, 광고와 콘텐츠 분리, 오류 제보 처리 원칙을 안내합니다." });
 
   const productMatch = path.match(/^\/schedule\/(\d{8})\/([^/]+)$/);
   if (productMatch) return productPage(productMatch[1], productMatch[2], env, ctx);
@@ -121,12 +122,15 @@ async function handleRequest(request, env, ctx) {
 async function cachedPage(request, ctx, producer, seconds = 300) {
   if (request.method !== "GET") return producer();
   const cache = caches.default;
-  const cached = await cache.match(request);
+  const cacheUrl = new URL(request.url);
+  cacheUrl.searchParams.set("__v", PAGE_CACHE_VERSION);
+  const cacheKey = new Request(cacheUrl.toString(), request);
+  const cached = await cache.match(cacheKey);
   if (cached) return cached;
   const response = await producer();
   if (response.status === 200) {
     response.headers.set("cache-control", `public, max-age=${seconds}, s-maxage=${seconds}`);
-    ctx.waitUntil(cache.put(request, response.clone()));
+    ctx.waitUntil(cache.put(cacheKey, response.clone()));
   }
   return response;
 }
@@ -354,7 +358,11 @@ async function popularPage(env) {
   const slots = groupCategorySlots(rows).slice(0, 50);
   const list = slots.map((slot, index) => popularSlotCard(slot, { heading: "공영홈쇼핑 인기 상품" }, index)).join("");
   const empty = `<div class="empty-state"><h3>현재 표시할 인기 상품이 없습니다.</h3><p>편성표 데이터가 갱신되면 현재 방송 예정 상품 기준으로 다시 표시됩니다.</p></div>`;
-  return htmlPage("오늘 인기 공영홈쇼핑 상품 TOP 50", `<section class="hero"><div class="container"><h1>🔥 오늘 인기 상품 TOP 50</h1><p>현재 조회된 공영홈쇼핑 방송 상품을 정리했습니다.</p></div></section><section class="section"><div class="container">${popularIntroHtml()}<h2 class="section-title">조회수 기준 인기 상품</h2><div class="popular-list">${list || empty}</div></div></section>`, env, { active: "popular", canonical: "/popular/" });
+  return htmlPage("오늘 인기 공영홈쇼핑 상품 TOP 50", `<section class="hero"><div class="container"><h1>🔥 오늘 인기 상품 TOP 50</h1><p>현재 조회된 공영홈쇼핑 방송 상품을 정리했습니다.</p></div></section><section class="section"><div class="container">${popularIntroHtml()}<h2 class="section-title">조회수 기준 인기 상품</h2><div class="popular-list">${list || empty}</div></div></section>`, env, {
+    active: "popular",
+    canonical: "/popular/",
+    description: "공영홈쇼핑 편성 상품 중 상세 조회가 많은 인기 상품 TOP 50입니다. 방송 묶음, 가격, 배송, 반품 조건을 함께 확인하세요."
+  });
 }
 
 async function categoryPopularPage(slug, env) {
@@ -481,15 +489,13 @@ function emptyCategoryHtml(config) {
 }
 
 async function introPageV2(env) {
-  const channelRows = await loadChannelRows(env);
   const body = `<section class="hero"><div class="container"><h1>홈쇼핑뷰 공영홈쇼핑 가이드</h1><p>편성표, 상품 정보, 할인 혜택을 한눈에 비교하고 오늘의 방송 쇼핑을 더 똑똑하게 확인하세요.</p></div></section>
   ${introGuideSectionsHtml()}
-  <section class="section"><div class="container">${channelGuideHtml(channelRows)}</div></section>
   ${faqSectionHtml()}`;
   return htmlPage("홈쇼핑뷰 공영홈쇼핑 소개", body, env, {
     active: "intro",
     canonical: "/intro/",
-    description: "홈쇼핑뷰 공영홈쇼핑 소개, 운영 목적, 공공데이터 출처, 주요 기능, IPTV 및 케이블TV 전국 방송 채널 번호 안내."
+    description: "홈쇼핑뷰 공영홈쇼핑 소개, 운영 목적, 공공데이터 출처, 주요 기능, 편성표와 상품 정보 활용 방법 안내."
   });
 }
 
@@ -508,14 +514,14 @@ function introGuideSectionsHtml() {
   <section class="section" id="intro-section"><div class="container"><div class="content-page">
     <h2>🏠 공영홈쇼핑이란?</h2>
     <h3>설립 목적과 배경</h3>
-    <p>공영홈쇼핑(아이머스)은 대한민국 정부가 중소기업과 소상공인의 판로 확대를 위해 설립한 홈쇼핑 채널입니다. 2015년 9월 개국하였으며, 공식 명칭은 (주)공영홈쇼핑입니다. 기존 민영 홈쇼핑(CJ, 현대, GS, 롯데 등)과 달리 <strong>공공의 이익</strong>을 최우선으로 운영됩니다.</p>
+    <p>공영홈쇼핑은 중소기업과 소상공인의 판로 확대를 위해 운영되는 공적 성격의 홈쇼핑 채널입니다. 기존 민영 홈쇼핑과 달리 중소기업 상품, 지역 특산품, 농축수산물 편성이 많은 편이며, 시청자는 방송 시간과 공식 상품 페이지의 조건을 함께 확인하는 것이 좋습니다.</p>
     <h3>일반 홈쇼핑과의 차이점</h3>
     <p>공영홈쇼핑은 다른 민영 홈쇼핑 채널과 다음과 같은 차별점이 있습니다.</p>
     <ul><li><strong>중소기업 상품 비중이 높음:</strong> 전체 방송 상품의 70% 이상이 중소기업·소상공인 제품입니다.</li><li><strong>합리적인 가격 정책:</strong> 과도한 마진을 추구하지 않아 소비자가에서 경쟁력 있는 가격을 유지합니다.</li><li><strong>지역 특산품 집중 편성:</strong> 전국 각 지역의 농·수·축산물, 지역 특산품에 대한 방송 비중이 높습니다.</li><li><strong>사회적 약자 지원:</strong> 장애인 기업, 사회적 기업의 상품도 적극 편성합니다.</li><li><strong>상대적으로 낮은 송출 수수료:</strong> 중소기업 입점 시 수수료 부담이 적어 판매자와 소비자 모두에게 유리합니다.</li></ul>
     <h3>공영홈쇼핑 방송 시간</h3>
     <p>공영홈쇼핑은 <strong>24시간</strong> 운영됩니다. 새벽 시간대에는 주로 식품류, 낮 시간대에는 생활용품 및 패션, 저녁 시간대(프라임 타임)에는 인기 상품이 집중 편성되는 경향이 있습니다. 하루 평균 <strong>60개 이상의 상품</strong>이 방송되며, 한 방송 시간(40~65분) 동안 메인 상품 외에 세트 구성이나 관련 상품도 함께 소개됩니다.</p>
     <h3>공영홈쇼핑 시청 방법</h3>
-    <p>공영홈쇼핑은 IPTV, 케이블TV, 위성방송 등 다양한 경로로 시청할 수 있습니다. 대부분의 IPTV에서는 <strong>21~22번 채널</strong>에서 시청 가능합니다. 자세한 지역별 채널 번호는 아래 방송 채널 안내를 참고하세요.</p>
+    <p>공영홈쇼핑은 IPTV, 케이블TV, 위성방송 등 다양한 경로로 시청할 수 있습니다. 채널번호는 통신사와 지역 케이블 사업자에 따라 다를 수 있으므로, 자세한 번호는 <a href="/channel/">공영홈쇼핑 채널번호 안내</a> 페이지에서 별도로 확인할 수 있습니다.</p>
   </div></div></section>
 
   <section class="section" id="site-section"><div class="container"><div class="content-page">
@@ -523,10 +529,12 @@ function introGuideSectionsHtml() {
     <h3>사이트 개요</h3>
     <p><strong>홈쇼핑뷰 공영홈쇼핑</strong>은 공공데이터포털(data.go.kr)에서 제공하는 공영홈쇼핑 오픈 API를 활용하여 TV 편성표와 상품 정보를 수집·정리하여 제공하는 독립 정보 사이트입니다.</p>
     <p>공영홈쇼핑 공식 사이트와는 별개로 운영되며, 소비자가 더 편리하게 편성 정보를 확인하고 합리적인 쇼핑을 할 수 있도록 돕는 것이 목표입니다.</p>
+    <p>홈쇼핑뷰는 상품을 판매하거나 결제를 중개하지 않습니다. 편성표, 상품명, 가격, 카테고리, 공식 구매 링크를 보기 쉽게 정리하고, 상품군별 구매 전 확인사항을 덧붙여 사용자가 공식 사이트에서 최종 조건을 확인하기 전에 비교 기준을 잡을 수 있도록 돕습니다.</p>
     <h3>주요 기능</h3>
     <ul><li><strong>날짜별 TV 편성표 조회:</strong> 오늘부터 최대 9일 후까지의 편성 일정을 날짜별로 확인할 수 있습니다.</li><li><strong>31개 항목의 상세 정보:</strong> 상품명, 가격, 할인율, 카드 혜택, 카테고리 4단계, 무이자 할부, 품절 여부 등 API에서 제공하는 모든 정보를 빠짐없이 표시합니다.</li><li><strong>메인·관련 상품 그룹핑:</strong> 같은 방송 시간대의 메인 상품과 부속 상품(세트/옵션)을 묶어서 보여드려 비교가 쉽습니다.</li><li><strong>자동 업데이트:</strong> 매일 자정에 자동으로 최신 편성 정보를 수집하여 항상 최신 상태를 유지합니다.</li><li><strong>공식 사이트 바로가기:</strong> 각 상품 상세 페이지에서 공영홈쇼핑 공식 구매 페이지로 바로 이동할 수 있습니다.</li></ul>
     <h3>데이터 출처</h3>
     <p>본 사이트의 모든 편성표 및 상품 정보는 <a href="https://www.data.go.kr/" target="_blank" rel="noopener">공공데이터포털(data.go.kr)</a>에서 제공하는 공영홈쇼핑 TV편성 상품정보 API를 통해 수집됩니다. 정보의 정확성을 위해 노력하고 있으나, 실제 방송 편성과 차이가 있을 수 있으므로 최종 확인은 <a href="https://www.gongyoungshop.kr" target="_blank" rel="noopener">공영홈쇼핑 공식 사이트</a>를 이용해 주세요.</p>
+    <p>데이터는 날짜별 편성표와 상품 상세 페이지로 재구성되며, 동일 방송 시간대의 대표 상품과 관련 상품을 묶어 표시합니다. 인기 상품은 상세 페이지 조회수를 기준으로 정렬하지만, 조회수는 구매 추천이나 품질 보증을 의미하지 않습니다.</p>
     <h3>주의사항</h3>
     <p>본 사이트는 공영홈쇼핑의 공식 사이트가 아닙니다. 상품의 직접 판매나 결제 기능을 제공하지 않으며, 실제 구매는 공영홈쇼핑 공식 사이트 또는 TV 생방송을 통해서만 가능합니다. 표시되는 가격은 API에서 제공하는 사전 등록 가격으로, 실제 방송 중 변동될 수 있습니다.</p>
   </div></div></section>
@@ -610,7 +618,11 @@ function introPage(env) {
 
 function guideListPage(env) {
   const cards = GUIDE_POSTS.map(([slug, title, excerpt]) => `<a class="post-list-card" href="/guide/${slug}"><span class="post-list-label">가이드</span><h3>${title}</h3><p>${excerpt}</p></a>`).join("");
-  return htmlPage("홈쇼핑 가이드 - 공영홈쇼핑 편성표 활용법", `<section class="hero"><div class="container"><h1>📖 홈쇼핑 가이드</h1><p>편성표와 상품 정보를 더 똑똑하게 확인하는 방법을 정리했습니다.</p></div></section><section class="section"><div class="container"><h2 class="section-title">안내 글 모음</h2><div class="post-list-grid">${cards}</div></div></section>`, env, { active: "guide", canonical: "/guide/" });
+  return htmlPage("홈쇼핑 가이드 - 공영홈쇼핑 편성표 활용법", `<section class="hero"><div class="container"><h1>📖 홈쇼핑 가이드</h1><p>편성표와 상품 정보를 더 똑똑하게 확인하는 방법을 정리했습니다.</p></div></section><section class="section"><div class="container"><h2 class="section-title">안내 글 모음</h2><div class="post-list-grid">${cards}</div></div></section>`, env, {
+    active: "guide",
+    canonical: "/guide/",
+    description: "공영홈쇼핑 편성표, 식품, 건강식품, 생활가전, 패션, 배송, 반품, 카드 할인 확인법을 정리한 홈쇼핑 구매 가이드 모음입니다."
+  });
 }
 
 function guideDetailPage(slug, env) {
@@ -1466,17 +1478,27 @@ function contactHtml() {
   <h2>문의 유형 안내</h2>
   <p><strong>정보 오류 신고:</strong> 편성표 정보나 상품 가격 등에 오류가 있는 경우 알려주시면 확인 후 수정하겠습니다.</p>
   <p><strong>사이트 건의:</strong> 추가되었으면 하는 기능이나 개선 사항이 있으면 의견을 보내주세요.</p>
-  <p><strong>기타 문의:</strong> 제휴, 광고, 기타 문의도 환영합니다.</p>`;
+  <p><strong>기타 문의:</strong> 제휴, 광고, 기타 문의도 환영합니다.</p>
+  <h2>오류 제보 시 포함하면 좋은 내용</h2>
+  <p>편성표나 상품 정보 오류를 제보할 때는 확인하려는 페이지 주소, 방송 날짜와 시간, 상품명, 공식 공영홈쇼핑 페이지에서 확인한 내용이 함께 있으면 더 빠르게 검토할 수 있습니다. 가격, 배송비, 무이자 할부, 품절 여부처럼 방송 중 변경될 수 있는 항목은 제보 시점의 화면과 실제 공식 페이지 상태가 다를 수 있습니다.</p>
+  <p>상품 구매, 주문 취소, 배송 조회, 반품, 교환, AS 문의는 홈쇼핑뷰에서 처리하지 않습니다. 이 사이트는 편성표와 상품 정보를 정리하는 독립 정보 사이트이므로 실제 거래와 고객센터 업무는 공영홈쇼핑 공식 채널을 이용해 주세요.</p>
+  <h2>문의 처리 기준</h2>
+  <p>접수된 오류는 공공데이터포털 API 정보와 공영홈쇼핑 공식 상품 페이지를 기준으로 확인합니다. 단순 의견이나 기능 제안은 사이트 개선 시 참고하며, 모든 요청이 즉시 반영된다는 의미는 아닙니다. 개인정보 보호를 위해 주문번호, 카드번호, 주소, 주민등록번호 등 민감한 정보는 문의 내용에 포함하지 않는 것이 좋습니다.</p>`;
 }
 
 function dataSourceHtml() {
-  return `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:30px;">최종 수정: 2026년 5월 22일</p>
+  return `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:30px;">최종 수정: 2026년 5월 23일</p>
   <h2>데이터 출처</h2>
   <p>홈쇼핑뷰는 공공데이터포털(data.go.kr)에서 제공하는 공영홈쇼핑 방송 편성 API를 기반으로 편성표와 상품 정보를 정리합니다. 원천 데이터에는 방송 날짜, 방송 시간, 상품명, 가격, 이미지, 공식 구매 링크, 배송 및 카드 혜택 관련 항목이 포함될 수 있습니다.</p>
+  <h2>수집되는 주요 항목</h2>
+  <p>사이트는 방송일, 시작 시간, 종료 시간, 상품명, 상품 코드, 대분류·중분류·소분류·세분류 카테고리, 판매가, 할인율, 무료배송 여부, 카드 혜택, 무이자 할부, 공식 상품 링크, 상품 이미지, 품절 여부 등 API가 제공하는 항목을 저장합니다. 항목별 제공 여부는 공영홈쇼핑 API 응답 상태에 따라 달라질 수 있습니다.</p>
   <h2>업데이트 기준</h2>
   <p>편성 데이터는 Cloudflare Worker의 예약 실행을 통해 매일 갱신되며, 현재 날짜 이후의 편성 정보를 우선 노출합니다. 방송 편성은 공영홈쇼핑 사정에 따라 변경될 수 있으므로 실제 구매 전에는 공영홈쇼핑 공식 사이트에서 최종 조건을 확인해야 합니다.</p>
   <h2>가공 방식</h2>
-  <p>원천 데이터를 그대로 나열하지 않고 날짜별 편성표, 방송 시간대, 상품 상세 페이지, 인기 상품, 관련 상품, 구매 전 확인사항 형태로 재구성합니다. 사용자는 방송 전 상품을 비교하고 가격, 배송, 반품 조건을 함께 확인할 수 있습니다.</p>
+  <p>원천 데이터를 그대로 나열하지 않고 날짜별 편성표, 방송 시간대, 상품 상세 페이지, 인기 상품, 관련 상품, 구매 전 확인사항 형태로 재구성합니다. 같은 방송 날짜와 시작·종료 시간이 같은 상품은 하나의 방송 묶음으로 정리하고, 대표 상품 아래에 함께 방송되는 구성 상품이나 관련 상품을 표시합니다.</p>
+  <p>인기 상품은 상품 상세 페이지 조회수를 기준으로 정렬합니다. 조회수는 이용자의 관심도를 보여주는 참고 지표일 뿐이며, 판매량, 품질, 추천 순위, 구매 보장을 의미하지 않습니다. 카테고리 페이지는 API의 상품 분류와 상품명 키워드를 함께 참고해 식품, 건강식품, 주방용품, 패션·잡화, 생활가전으로 나눕니다.</p>
+  <h2>캐시와 반영 지연</h2>
+  <p>페이지 속도를 높이기 위해 편성표, 인기 상품, 카테고리, 가이드, 신뢰 페이지는 일정 시간 캐시될 수 있습니다. 따라서 API 갱신 직후에는 공식 사이트와 홈쇼핑뷰 표시 내용 사이에 짧은 지연이 발생할 수 있습니다. 결제 직전에는 항상 공식 상품 페이지의 최신 가격과 혜택을 기준으로 판단해 주세요.</p>
   <h2>정확성 안내</h2>
   <p>가격, 할인율, 무료배송, 무이자, 재고 상태는 방송과 공식 판매 페이지에서 달라질 수 있습니다. 홈쇼핑뷰는 비교와 탐색을 돕는 정보 사이트이며 상품 판매, 주문, 결제, 고객 상담을 직접 처리하지 않습니다.</p>
   <h2>오류 제보</h2>
@@ -1484,15 +1506,20 @@ function dataSourceHtml() {
 }
 
 function editorialPolicyHtml() {
-  return `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:30px;">최종 수정: 2026년 5월 22일</p>
+  return `<p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:30px;">최종 수정: 2026년 5월 23일</p>
   <h2>운영 목적</h2>
   <p>홈쇼핑뷰는 공영홈쇼핑 편성표와 상품 정보를 사용자가 한눈에 비교할 수 있도록 정리하는 정보 서비스입니다. 방송 중 구매를 서두르기보다 가격, 구성, 배송, 반품 조건을 함께 확인하도록 돕는 것을 목표로 합니다.</p>
   <h2>콘텐츠 작성 기준</h2>
   <p>가이드 콘텐츠는 홈쇼핑 상품을 구매하기 전 확인해야 할 기준을 중심으로 작성합니다. 특정 상품 구매를 무조건 권장하지 않으며, 상품군별 주의사항과 공식 사이트 확인 필요성을 함께 안내합니다.</p>
+  <p>상품 상세 페이지의 구매 전 안내는 상품명, 방송 분류, 세부 카테고리, 가격, 배송 정보, 방송 시간 등 공개 데이터에 기반해 자동 구성됩니다. 사람이 직접 사용 후기를 작성한 것이 아니므로 개인 경험이나 성능 보증으로 해석해서는 안 됩니다.</p>
   <h2>편집 원칙</h2>
   <ul><li>공식 데이터와 확인 가능한 정보를 우선 사용합니다.</li><li>가격과 혜택은 최종 구매 조건이 아니라 참고 정보로 안내합니다.</li><li>소비자가 놓치기 쉬운 배송, 반품, 구성, AS 조건을 함께 설명합니다.</li><li>오류 제보가 접수되면 원천 데이터와 공식 페이지를 기준으로 확인합니다.</li></ul>
+  <h2>인기 순위와 추천 기준</h2>
+  <p>인기 상품 목록은 상세 페이지 조회수와 편성 정보를 기준으로 정렬합니다. 이 순위는 판매량이나 광고비 기준이 아니며, 특정 상품을 우선 구매하라는 추천도 아닙니다. 같은 방송 시간대에 함께 편성된 상품은 하나의 방송 묶음으로 보여 이용자가 구성 차이를 비교할 수 있도록 정리합니다.</p>
   <h2>광고와 콘텐츠의 분리</h2>
   <p>광고가 게재되더라도 편성표와 가이드 콘텐츠의 작성 기준은 유지됩니다. 광고 또는 외부 링크는 상품 정보의 정확성을 보장하지 않으며, 구매 결정은 공식 판매 페이지의 조건을 확인한 뒤 이용자가 직접 판단해야 합니다.</p>
+  <h2>수정 요청 처리</h2>
+  <p>상품명, 가격, 편성 시간, 링크 오류 등 확인 가능한 오류 제보는 공식 데이터와 원문 페이지를 기준으로 검토합니다. 방송 종료 후 변경된 가격이나 품절 상태처럼 시간에 따라 달라지는 정보는 실시간으로 완전히 일치하지 않을 수 있습니다.</p>
   <h2>비공식 사이트 안내</h2>
   <p>홈쇼핑뷰는 공영홈쇼핑의 공식 운영 사이트가 아닙니다. 주문, 결제, 배송, 반품, 교환, 고객센터 업무는 공영홈쇼핑 공식 채널에서 처리됩니다.</p>`;
 }
