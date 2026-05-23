@@ -38,7 +38,7 @@ const CATEGORY_PAGES = {
     keywords: ["식품", "농산", "수산", "축산", "김치", "쌀", "한우", "굴비", "과일", "반찬", "간편식"],
     guide: ["food-guide", "식품 방송 상품 구매 가이드"],
     points: ["총 중량과 개별 포장 단위를 확인합니다.", "원산지, 등급, 손질 상태를 비교합니다.", "냉장·냉동 배송과 수령 가능 시간을 확인합니다.", "소비기한과 보관 방법을 공식 상품 페이지에서 다시 확인합니다."],
-    faq: [["식품 홈쇼핑 상품은 가격만 비교해도 되나요?", "아니요. 식품은 총 중량, 실중량, 원산지, 보관 방식, 배송 조건을 함께 봐야 실제 만족도를 판단하기 쉽습니다."], ["냉동식품은 어떤 점을 확인해야 하나요?", "수령 가능 시간, 냉동 보관 공간, 해동 후 재냉동 가능 여부, 소비기한을 확인하는 것이 좋습니다."], ["방송 화면의 조리 예시는 실제 구성인가요?", "조리 예시는 연출 이미지일 수 있으므로 실제 구성품과 중량은 공식 상품 페이지의 상세 정보를 기준으로 확인해야 합니다."]]
+    faq: [["식품 홈쇼핑 상품은 가격만 비교해도 되나요?", "아니요. 식품은 총 중량, 실중량, 원산지, 보관 방식, 배송 조건을 함께 봐야 실제 만족도를 판단하기 쉽습니다."], ["냉동식품은 어떤 점을 확인해야 하나요?", "수령 가능 시간, 냉동 보관 공간, 해동 후 재냉동 가능 여부, 소비기한을 확인하는 것이 좋습니다."], ["방송 화면의 조리 예시는 실제 구성인가요?", "조리 예시는 연출 이미지일 수 있으므로 실제 구성품과 중량은 공식 상품 페이지의 상세 정보를 기준으로 확인해야 합니다."], ["식품 방송 상품은 언제 주문하는 것이 좋나요?", "신선식품이나 냉동식품은 수령 가능한 날짜와 시간을 먼저 생각한 뒤 주문하는 것이 좋습니다. 장시간 부재가 예상되면 배송 상태가 만족도에 영향을 줄 수 있습니다."], ["선물용 식품은 무엇을 더 확인해야 하나요?", "포장 상태, 배송 가능 지역, 도착 예정일, 받는 사람의 보관 가능 여부를 함께 확인해야 합니다. 명절 전후에는 배송 마감일도 중요합니다."]]
   },
   health: {
     title: "건강식품 방송 상품",
@@ -47,7 +47,7 @@ const CATEGORY_PAGES = {
     keywords: ["건강", "홍삼", "유산균", "비타민", "영양", "콜라겐", "오메가", "루테인", "프로폴리스"],
     guide: ["health-guide", "건강식품 구매 전 확인사항"],
     points: ["질병 치료 효과처럼 보이는 표현은 주의합니다.", "주요 성분의 1일 섭취량 기준 함량을 확인합니다.", "복용 중인 약이나 알레르기 성분과 충돌하지 않는지 확인합니다.", "총 포장 수보다 실제 섭취 가능 일수를 계산합니다."],
-    faq: [["건강식품 방송 상품은 효능이 보장되나요?", "아니요. 건강기능식품은 개인의 건강 상태와 섭취 습관에 따라 체감이 다를 수 있으며 질병 치료제로 이해하면 안 됩니다."], ["성분 함량은 어떻게 비교해야 하나요?", "총 용량보다 1일 섭취량 기준의 주요 성분 함량과 섭취 가능 일수를 기준으로 비교하는 것이 좋습니다."], ["부모님 선물로 건강식품을 사도 괜찮나요?", "복용 중인 약, 알레르기, 기저질환이 있을 수 있으므로 공식 주의사항을 확인하고 필요한 경우 전문가와 상담하는 것이 안전합니다."]]
+    faq: [["건강식품 방송 상품은 효능이 보장되나요?", "아니요. 건강기능식품은 개인의 건강 상태와 섭취 습관에 따라 체감이 다를 수 있으며 질병 치료제로 이해하면 안 됩니다."], ["성분 함량은 어떻게 비교해야 하나요?", "총 용량보다 1일 섭취량 기준의 주요 성분 함량과 섭취 가능 일수를 기준으로 비교하는 것이 좋습니다."], ["부모님 선물로 건강식품을 사도 괜찮나요?", "복용 중인 약, 알레르기, 기저질환이 있을 수 있으므로 공식 주의사항을 확인하고 필요한 경우 전문가와 상담하는 것이 안전합니다."], ["건강식품은 대용량 구성이 유리한가요?", "꾸준히 섭취할 수 있는 맛과 제형인지가 먼저입니다. 처음 먹어보는 성분이라면 대용량보다 섭취 주의사항과 보관 기간을 먼저 확인하는 것이 좋습니다."], ["질병명이나 치료 효과가 보이면 어떻게 봐야 하나요?", "건강식품은 질병 치료제가 아닙니다. 질병 치료·예방처럼 보이는 표현은 주의하고, 공식 상품 페이지의 기능성 표시와 섭취 대상 기준을 확인해야 합니다."]]
   },
   kitchen: {
     title: "주방용품 홈쇼핑 상품",
@@ -56,7 +56,7 @@ const CATEGORY_PAGES = {
     keywords: ["주방", "프라이팬", "냄비", "칼", "도마", "용기", "조리", "후라이팬", "밀폐"],
     guide: ["kitchenware-guide", "주방용품 홈쇼핑 구매 전 확인할 점"],
     points: ["소재와 코팅 종류, 사용 가능한 열원을 확인합니다.", "실제로 자주 쓰는 크기와 구성인지 봅니다.", "인덕션, 식기세척기, 오븐 사용 가능 여부를 확인합니다.", "세트 구성품별 단가와 보관 공간을 함께 고려합니다."],
-    faq: [["주방용품 세트는 구성이 많을수록 좋은가요?", "반드시 그렇지는 않습니다. 실제로 자주 쓰는 크기와 소재가 포함되어 있는지 보는 것이 더 중요합니다."], ["코팅 제품은 무엇을 확인해야 하나요?", "사용 가능한 열원, 금속 조리도구 사용 가능 여부, 세척 방법, 코팅 관리법을 확인해야 오래 사용할 수 있습니다."], ["개봉 후 반품이 가능한가요?", "상품군과 공식 판매 조건에 따라 다르므로 개봉·사용 후 교환 및 반품 제한을 공식 상품 페이지에서 확인해야 합니다."]]
+    faq: [["주방용품 세트는 구성이 많을수록 좋은가요?", "반드시 그렇지는 않습니다. 실제로 자주 쓰는 크기와 소재가 포함되어 있는지 보는 것이 더 중요합니다."], ["코팅 제품은 무엇을 확인해야 하나요?", "사용 가능한 열원, 금속 조리도구 사용 가능 여부, 세척 방법, 코팅 관리법을 확인해야 오래 사용할 수 있습니다."], ["개봉 후 반품이 가능한가요?", "상품군과 공식 판매 조건에 따라 다르므로 개봉·사용 후 교환 및 반품 제한을 공식 상품 페이지에서 확인해야 합니다."], ["인덕션을 쓰면 어떤 표시를 봐야 하나요?", "인덕션 사용 가능 여부와 바닥 지름, 소재를 확인해야 합니다. 일부 제품은 가스레인지용 구성과 인덕션용 구성이 다를 수 있습니다."], ["주방용품 세트는 보관 공간도 봐야 하나요?", "네. 수량이 많으면 단가가 낮아 보이지만 수납 공간이 부족하면 사용 빈도가 떨어질 수 있습니다. 손잡이 분리나 적층 보관 가능 여부도 확인하세요."]]
   },
   fashion: {
     title: "패션·잡화 홈쇼핑 상품",
@@ -65,7 +65,7 @@ const CATEGORY_PAGES = {
     keywords: ["패션", "의류", "신발", "가방", "잡화", "속옷", "여성", "남성", "사이즈"],
     guide: ["fashion-guide", "패션 상품 사이즈 확인법"],
     points: ["평소 사이즈보다 실측표를 기준으로 확인합니다.", "방송 화면 색상과 실제 색감이 다를 수 있음을 고려합니다.", "세트 구성의 개별 색상과 수량을 확인합니다.", "착용·세탁 후 교환 제한 여부를 확인합니다."],
-    faq: [["패션 상품은 평소 사이즈대로 사면 되나요?", "브랜드마다 기준이 다르므로 어깨, 가슴, 허리, 총장 같은 실측표를 기준으로 확인하는 것이 안전합니다."], ["화면 색상과 실제 색상이 다를 수 있나요?", "네. 조명과 화면 설정에 따라 달라질 수 있으므로 상세 이미지와 색상 설명을 함께 확인해야 합니다."], ["세트 의류는 일부만 반품할 수 있나요?", "대부분 세트 전체 기준으로 처리되는 경우가 많으므로 공식 교환·반품 조건을 먼저 확인해야 합니다."]]
+    faq: [["패션 상품은 평소 사이즈대로 사면 되나요?", "브랜드마다 기준이 다르므로 어깨, 가슴, 허리, 총장 같은 실측표를 기준으로 확인하는 것이 안전합니다."], ["화면 색상과 실제 색상이 다를 수 있나요?", "네. 조명과 화면 설정에 따라 달라질 수 있으므로 상세 이미지와 색상 설명을 함께 확인해야 합니다."], ["세트 의류는 일부만 반품할 수 있나요?", "대부분 세트 전체 기준으로 처리되는 경우가 많으므로 공식 교환·반품 조건을 먼저 확인해야 합니다."], ["신발이나 잡화는 어떤 정보를 봐야 하나요?", "발볼, 굽 높이, 소재, 무게, 수납 구조처럼 실제 착용감과 사용성을 좌우하는 정보를 봐야 합니다. 사이즈 교환 조건도 중요합니다."], ["의류 세탁 방법은 왜 중요한가요?", "드라이클리닝 전용이거나 물세탁 제한이 있으면 유지 비용이 커질 수 있습니다. 소재 혼용률과 세탁 표시를 함께 확인하는 것이 좋습니다."]]
   },
   appliance: {
     title: "생활가전 홈쇼핑 상품",
@@ -74,10 +74,10 @@ const CATEGORY_PAGES = {
     keywords: ["가전", "청소기", "건조기", "냉장", "세탁", "마사지", "전자", "생활가전", "설치"],
     guide: ["appliance-guide", "생활가전 홈쇼핑 구매 가이드"],
     points: ["정확한 모델명과 출시 시기를 확인합니다.", "AS 기간, 소모품 비용, 설치 조건을 확인합니다.", "설치 공간과 전원, 배수 등 환경 조건을 점검합니다.", "기본 구성품과 추가 구성품을 구분해서 봅니다."],
-    faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."]]
+    faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."], ["생활가전 모델명은 왜 확인해야 하나요?", "비슷한 이름의 상품이라도 모델명에 따라 출시 시기, 성능, 부속품, AS 기준이 달라질 수 있습니다. 결제 전 공식 상세의 모델명을 기준으로 확인하세요."], ["소모품 비용도 구매 전에 봐야 하나요?", "필터, 브러시, 전용 세제, 배터리처럼 반복 구매가 필요한 소모품이 있으면 실제 유지 비용이 달라집니다. 본체 가격과 함께 계산하는 것이 좋습니다."]]
   }
 };
-const PAGE_CACHE_VERSION = "2026-05-23-trust-pages";
+const PAGE_CACHE_VERSION = "2026-05-23-content-links";
 
 export default {
   async fetch(request, env, ctx) {
@@ -116,7 +116,12 @@ async function handleRequest(request, env, ctx) {
   const productMatch = path.match(/^\/schedule\/(\d{8})\/([^/]+)$/);
   if (productMatch) return productPage(productMatch[1], productMatch[2], env, ctx);
 
-  return htmlPage("페이지를 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 페이지를 찾을 수 없습니다.</p><a class="btn-primary" href="/">편성표 보기</a></div></div></section>`, env, { status: 404 });
+  return notFoundPage(env);
+}
+
+function notFoundPage(env) {
+  const body = `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 페이지를 찾을 수 없습니다. 주소가 바뀌었거나 방송 편성이 종료되었을 수 있습니다.</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;"><a class="btn-primary" href="/">최신 편성표 보기</a><a class="btn-secondary" href="/popular/">인기 상품 보기</a><a class="btn-secondary" href="/guide/">구매 가이드 보기</a></div></div></div></section>`;
+  return htmlPage("페이지를 찾을 수 없습니다", body, env, { status: 404, robots: "noindex, follow" });
 }
 
 async function cachedPage(request, ctx, producer, seconds = 300) {
@@ -261,7 +266,33 @@ function productDecisionGuideHtml(item, productName) {
   const shippingText = Number(item.free_shipping) ? "무료배송으로 표시되지만 도서산간 추가 비용은 별도 확인이 필요합니다." : "배송비 조건은 공식 상품 페이지에서 다시 확인하는 편이 안전합니다.";
   const installmentText = Number(item.month || 0) > 0 ? `무이자 ${item.month}개월 조건이 표시되어 있어 고가 상품은 월 부담액도 함께 계산해 볼 수 있습니다.` : "무이자 할부 정보가 표시되지 않았으므로 결제 단계의 카드 혜택을 별도로 확인해야 합니다.";
   const bullets = profile.checks.map((check) => `<li><strong>${esc(check[0])}</strong> ${esc(check[1])}</li>`).join("");
-  return `<div class="detail-section decision-guide"><h2>${esc(profile.title)}</h2><div class="content-page" style="padding:0;"><p><strong>${esc(productName)}</strong>은 ${esc(profile.categoryLabel)} 상품으로, 방송 화면의 가격 문구만 보기보다 상품군별 확인 기준을 함께 보는 것이 좋습니다. 현재 표시 가격은 <strong>${priceText}</strong>이며, ${shippingText} ${installmentText}</p>${subGuide}<ul>${bullets}</ul><p>${esc(profile.note)}</p></div></div>`;
+  return `<div class="detail-section decision-guide"><h2>${esc(profile.title)}</h2><div class="content-page" style="padding:0;"><p><strong>${esc(productName)}</strong>은 ${esc(profile.categoryLabel)} 상품으로, 방송 화면의 가격 문구만 보기보다 상품군별 확인 기준을 함께 보는 것이 좋습니다. 현재 표시 가격은 <strong>${priceText}</strong>이며, ${shippingText} ${installmentText}</p>${productBuyerFitHtml(item, productName, profile)}${subGuide}<ul>${bullets}</ul><p>${esc(profile.note)}</p></div></div>`;
+}
+
+function productBuyerFitHtml(item, productName, profile) {
+  const text = `${productName} ${decodeName(item.category1)} ${decodeName(item.category2)} ${decodeName(item.category3)} ${decodeName(item.category4)}`.toLowerCase();
+  const priceValue = Number(item.price || 0);
+  const has = (...words) => words.some((word) => text.includes(word.toLowerCase()));
+  let fit = `${profile.categoryLabel} 상품을 방송 전에 비교하고, 공식 상품 페이지에서 최종 조건을 확인하려는 분에게 적합합니다.`;
+  let check = "상품명과 방송 시간, 가격, 배송 조건, 반품 기준을 함께 확인한 뒤 결정하는 것이 좋습니다.";
+  if (profile.categoryLabel === "식품") {
+    fit = has("선물", "명절") ? "선물용 식품을 찾거나 받는 사람의 수령 가능일을 맞춰야 하는 분에게 특히 확인할 만한 상품입니다." : "가정에서 반복적으로 소비할 식품을 미리 준비하거나 방송 중 식품 구성을 비교하려는 분에게 맞습니다.";
+    check = "총 중량보다 1회 섭취량, 포장 단위, 원산지, 냉장·냉동 보관 가능 공간을 기준으로 보는 것이 좋습니다.";
+  } else if (profile.categoryLabel === "건강식품") {
+    fit = "본인이나 가족의 건강 관리용 상품을 찾지만 성분과 섭취 대상 조건을 먼저 따져보고 싶은 분에게 맞습니다.";
+    check = "기능성 문구보다 1일 섭취량, 총 섭취 가능 일수, 알레르기 성분, 복용 중인 약과의 충돌 가능성을 우선 확인하세요.";
+  } else if (profile.categoryLabel === "주방용품") {
+    fit = "조리 도구를 교체하거나 세트 구성을 한 번에 비교하려는 분에게 적합합니다.";
+    check = "인덕션 호환, 코팅 관리법, 실제 자주 쓰는 크기, 세척과 보관 편의성을 확인하면 실패 가능성을 줄일 수 있습니다.";
+  } else if (profile.categoryLabel === "패션·잡화") {
+    fit = "방송 혜택으로 의류나 잡화를 구매하되 사이즈와 교환 조건을 꼼꼼히 보고 싶은 분에게 맞습니다.";
+    check = "평소 사이즈보다 실측표와 소재, 색상 선택 가능 여부, 착용 후 교환 제한을 먼저 확인하세요.";
+  } else if (profile.categoryLabel === "생활가전") {
+    fit = "생활가전 구매 전 모델명과 AS, 설치 조건을 비교하려는 분에게 적합합니다.";
+    check = "설치 공간, 소모품 비용, 소비전력, 무상 보증 기간, 기존 제품 철거 여부를 공식 상세에서 확인해야 합니다.";
+  }
+  const priceGuide = priceValue >= 200000 ? "가격대가 높은 편이므로 무이자 할부가 있어도 총 결제금액과 월별 카드 부담액을 나누어 계산해 보세요." : priceValue > 0 ? "가격 부담이 아주 큰 상품은 아니더라도 배송비와 구성품 기준으로 실제 단가를 비교해 보세요." : "가격 정보가 바뀔 수 있으므로 결제 직전 공식 페이지의 최종 금액을 기준으로 판단하세요.";
+  return `<p><strong>이런 분께 맞습니다:</strong> ${esc(fit)}</p><p><strong>구매 전 핵심 확인:</strong> ${esc(check)} ${esc(priceGuide)}</p>`;
 }
 
 function subcategoryAdviceHtml(item) {
@@ -485,7 +516,8 @@ function categoryKeywordVariants(keywords) {
 }
 
 function emptyCategoryHtml(config) {
-  return `<div class="empty-state"><h3>현재 표시할 ${esc(config.heading)}이 없습니다.</h3><p>편성 데이터가 갱신되면 해당 상품군의 방송 상품을 다시 정리합니다.</p></div>`;
+  const guideSlug = config.guide?.[0] || "shopping-checklist";
+  return `<div class="empty-state"><h3>현재 표시할 ${esc(config.heading)}이 없습니다.</h3><p>편성 데이터가 갱신되면 해당 상품군의 방송 상품을 다시 정리합니다. 지금은 전체 편성표와 인기 상품, 관련 구매 가이드에서 비슷한 상품군을 먼저 확인해 보세요.</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;"><a class="btn-primary" href="/">전체 편성표</a><a class="btn-secondary" href="/popular/">인기 상품</a><a class="btn-secondary" href="/guide/${guideSlug}/">관련 가이드</a></div></div>`;
 }
 
 async function introPageV2(env) {
@@ -639,7 +671,19 @@ function guideArticle(title) {
   return `<p>${data.intro}</p>
   ${guideSeoBody(title, data)}
   ${guideUniqueNote(title)}
+  ${guideRelatedLinks(title)}
   <div class="faq-section guide-faq"><h2>❓ 자주 묻는 질문</h2>${faqs.map(([question, answer], index) => `<div class="faq-item${index === 0 ? " open" : ""}"><div class="faq-question"><span>Q. ${question}</span><span class="icon">▼</span></div><div class="faq-answer"><div class="faq-answer-inner">${answer}</div></div></div>`).join("")}</div>`;
+}
+
+function guideRelatedLinks(title) {
+  const links = [["전체 편성표", "/"], ["인기 상품", "/popular/"], ["공영홈쇼핑 채널번호", "/channel/"]];
+  if (title.includes("식품") || title.includes("농축수산")) links.push(["식품 편성 상품", "/category/food/"], ["식품 인기 TOP", "/popular/food/"]);
+  else if (title.includes("건강")) links.push(["건강식품 편성 상품", "/category/health/"], ["건강식품 인기 TOP", "/popular/health/"]);
+  else if (title.includes("주방")) links.push(["주방용품 편성 상품", "/category/kitchen/"], ["주방용품 인기 TOP", "/popular/kitchen/"]);
+  else if (title.includes("패션")) links.push(["패션·잡화 편성 상품", "/category/fashion/"], ["패션·잡화 인기 TOP", "/popular/fashion/"]);
+  else if (title.includes("가전")) links.push(["생활가전 편성 상품", "/category/appliance/"], ["생활가전 인기 TOP", "/popular/appliance/"]);
+  else links.push(["식품 상품", "/category/food/"], ["건강식품 상품", "/category/health/"], ["생활가전 상품", "/category/appliance/"]);
+  return `<div class="guide-inline-box"><h2>관련 페이지</h2><p>이 글과 함께 보면 좋은 홈쇼핑뷰 내부 페이지입니다. 편성표와 상품군 페이지를 함께 보면 실제 방송 상품을 기준으로 구매 조건을 비교하기 쉽습니다.</p><div style="display:flex;gap:8px;flex-wrap:wrap;">${links.map(([label, href]) => `<a href="${href}">${label}</a>`).join("")}</div></div>`;
 }
 
 function guideFaqs(title, data) {
