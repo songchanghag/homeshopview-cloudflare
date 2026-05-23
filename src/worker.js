@@ -77,7 +77,7 @@ const CATEGORY_PAGES = {
     faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."], ["생활가전 모델명은 왜 확인해야 하나요?", "비슷한 이름의 상품이라도 모델명에 따라 출시 시기, 성능, 부속품, AS 기준이 달라질 수 있습니다. 결제 전 공식 상세의 모델명을 기준으로 확인하세요."], ["소모품 비용도 구매 전에 봐야 하나요?", "필터, 브러시, 전용 세제, 배터리처럼 반복 구매가 필요한 소모품이 있으면 실제 유지 비용이 달라집니다. 본체 가격과 함께 계산하는 것이 좋습니다."]]
   }
 };
-const PAGE_CACHE_VERSION = "2026-05-23-schedule-title";
+const PAGE_CACHE_VERSION = "2026-05-23-rss";
 
 export default {
   async fetch(request, env, ctx) {
@@ -105,6 +105,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/robots.txt") return text(robots(env), "text/plain; charset=utf-8");
   if (path === "/sitemap.xml") return sitemap(env);
+  if (path === "/rss" || path === "/rss.xml") return rssFeed(env);
   if (path === "/schedule") return redirect(new URL("/", url).toString(), 301);
   if (path === "/" || path === "") return cachedPage(request, ctx, () => schedulePage(request, env));
   if (path === "/intro") return cachedPage(request, ctx, () => introPageV2(env), 1800);
@@ -1602,6 +1603,41 @@ async function sitemap(env) {
 
 function robots(env) {
   return `User-agent: *\nDisallow: /cdn-cgi/\nAllow: /\n\nSitemap: ${siteUrl(env)}sitemap.xml\n`;
+}
+
+async function rssFeed(env) {
+  const today = todayKst();
+  let rows = (await env.DB.prepare("SELECT * FROM schedule WHERE date >= ? ORDER BY date ASC, start_time ASC, priority ASC LIMIT 80").bind(today).all()).results || [];
+  if (!rows.length) rows = (await env.DB.prepare("SELECT * FROM schedule ORDER BY date DESC, start_time ASC, priority ASC LIMIT 80").all()).results || [];
+  const base = siteUrl(env);
+  const now = new Date().toUTCString();
+  const items = rows.map((item) => {
+    const name = decodeName(item.name);
+    const link = new URL(`schedule/${item.date}/${encodeURIComponent(item.item_code)}`, base).toString();
+    const category = [decodeName(item.category1), decodeName(item.category2), decodeName(item.category3), decodeName(item.category4)].filter(Boolean).join(" > ");
+    const description = `${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)} 공영홈쇼핑 방송 상품입니다. 가격 ${price(item.price)}원, ${Number(item.free_shipping) ? "무료배송" : "배송 조건 공식 확인 필요"}${category ? `, 분류 ${category}` : ""}. 최종 구매 조건은 공영홈쇼핑 공식 사이트에서 확인하세요.`;
+    return `<item>
+      <title>${escXml(`${name} - ${formatDate(item.date)} 공영홈쇼핑 편성표`)}</title>
+      <link>${escXml(link)}</link>
+      <guid isPermaLink="true">${escXml(link)}</guid>
+      <description>${escXml(description)}</description>
+      <category>${escXml(decodeName(item.category1) || "공영홈쇼핑")}</category>
+      <pubDate>${now}</pubDate>
+    </item>`;
+  }).join("\n");
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>홈쇼핑뷰 공영홈쇼핑 편성표</title>
+    <link>${escXml(base)}</link>
+    <description>공영홈쇼핑 TV 편성표, 방송 시간, 상품 가격, 무료배송과 무이자 혜택을 정리한 RSS 피드입니다.</description>
+    <language>ko-KR</language>
+    <lastBuildDate>${now}</lastBuildDate>
+    <ttl>60</ttl>
+    ${items}
+  </channel>
+</rss>`;
+  return text(xml, "application/rss+xml; charset=utf-8");
 }
 
 function scheduleStructuredData(date, slots, canonicalPath, env) {
