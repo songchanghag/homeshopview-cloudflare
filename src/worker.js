@@ -98,14 +98,14 @@ async function handleRequest(request, env, ctx) {
   if (path === "/robots.txt") return text(robots(env), "text/plain; charset=utf-8");
   if (path === "/sitemap.xml") return sitemap(env);
   if (path === "/schedule") return redirect(new URL("/", url).toString(), 301);
-  if (path === "/" || path === "") return schedulePage(request, env);
-  if (path === "/intro") return introPageV2(env);
-  if (path === "/popular") return popularPage(env);
-  if (path.startsWith("/popular/")) return categoryPopularPage(path.split("/").pop(), env);
-  if (path.startsWith("/category/")) return categoryLandingPage(path.split("/").pop(), env);
-  if (path === "/channel") return channelPage(env);
-  if (path === "/guide") return guideListPage(env);
-  if (path.startsWith("/guide/")) return guideDetailPage(path.split("/").pop(), env);
+  if (path === "/" || path === "") return cachedPage(request, ctx, () => schedulePage(request, env));
+  if (path === "/intro") return cachedPage(request, ctx, () => introPageV2(env), 1800);
+  if (path === "/popular") return cachedPage(request, ctx, () => popularPage(env));
+  if (path.startsWith("/popular/")) return cachedPage(request, ctx, () => categoryPopularPage(path.split("/").pop(), env));
+  if (path.startsWith("/category/")) return cachedPage(request, ctx, () => categoryLandingPage(path.split("/").pop(), env));
+  if (path === "/channel") return cachedPage(request, ctx, () => channelPage(env), 1800);
+  if (path === "/guide") return cachedPage(request, ctx, () => guideListPage(env), 1800);
+  if (path.startsWith("/guide/")) return cachedPage(request, ctx, () => guideDetailPage(path.split("/").pop(), env), 1800);
   if (path === "/terms") return staticLegalPage("이용약관", termsHtml(), env);
   if (path === "/privacy") return staticLegalPage("개인정보처리방침", privacyHtml(), env);
   if (path === "/contact") return staticLegalPage("문의하기", contactHtml(), env);
@@ -116,6 +116,19 @@ async function handleRequest(request, env, ctx) {
   if (productMatch) return productPage(productMatch[1], productMatch[2], env, ctx);
 
   return htmlPage("페이지를 찾을 수 없습니다", `<section class="section"><div class="container"><div class="not-found"><h1>404</h1><p>요청하신 페이지를 찾을 수 없습니다.</p><a class="btn-primary" href="/">편성표 보기</a></div></div></section>`, env, { status: 404 });
+}
+
+async function cachedPage(request, ctx, producer, seconds = 300) {
+  if (request.method !== "GET") return producer();
+  const cache = caches.default;
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const response = await producer();
+  if (response.status === 200) {
+    response.headers.set("cache-control", `public, max-age=${seconds}, s-maxage=${seconds}`);
+    ctx.waitUntil(cache.put(request, response.clone()));
+  }
+  return response;
 }
 
 async function schedulePage(request, env) {
@@ -203,6 +216,7 @@ async function productPage(date, itemCode, env, ctx) {
           ${socialShareButtons(name, canonicalPath, env)}
         </div>
         <div class="summary-box"><h2>📋 상품 핵심 요약</h2><p><strong>${esc(name)}</strong>은 공영홈쇼핑에서 <strong>${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)}</strong> 시간대에 방송되는 <strong>${esc(decodeName(item.category1))}</strong> 상품입니다.</p><p>판매가는 <strong style="color:var(--danger);font-size:1.1em;">${price(item.price)}원</strong>이며 ${Number(item.free_shipping) ? "무료배송" : "배송비 별도"} 조건으로 표시됩니다. 실제 구매 전 공식 사이트의 최종 조건을 확인해 주세요.</p></div>
+        ${productDecisionGuideHtml(item, name)}
         <div class="product-header">
           ${item.img ? `<div class="product-img-wrap"><img src="${esc(item.img)}" alt="${esc(name)}" loading="lazy"></div>` : ""}
           <div class="product-main-info"><h2>💰 가격 정보</h2><div style="margin-bottom:16px;">${Number(item.discount_rate) > 0 ? `<span style="font-size:0.9rem;color:var(--text-muted);text-decoration:line-through;">${price(item.orgin_price)}원</span><span class="discount-badge" style="margin-left:6px;">${item.discount_rate}%</span><br>` : ""}<span style="font-size:2rem;font-weight:800;color:var(--danger);">${price(item.price)}</span><span style="font-size:1.3rem;font-weight:600;color:var(--danger);">원</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">${Number(item.free_shipping) ? `<span class="tag tag-free">무료배송</span>` : ""}${Number(item.month) > 0 ? `<span class="tag tag-installment">무이자 ${item.month}개월</span>` : ""}</div>${cards.length ? `<h3 style="margin-top:18px;">카드 할인</h3>${cards.map((card) => `<div style="background:#f8f4ff;padding:8px 14px;border-radius:8px;margin-bottom:6px;"><strong>${esc(decodeName(card.name))}</strong> ${card.discount_rate || 0}% 할인</div>`).join("")}` : ""}</div>
@@ -236,6 +250,89 @@ function socialShareButtons(title, path, env) {
   </div>`;
 }
 
+function productDecisionGuideHtml(item, productName) {
+  const profile = productAdviceProfile(item, productName);
+  const subGuide = subcategoryAdviceHtml(item);
+  const priceText = Number(item.price || 0) > 0 ? `${price(item.price)}원` : "공식 판매가";
+  const shippingText = Number(item.free_shipping) ? "무료배송으로 표시되지만 도서산간 추가 비용은 별도 확인이 필요합니다." : "배송비 조건은 공식 상품 페이지에서 다시 확인하는 편이 안전합니다.";
+  const installmentText = Number(item.month || 0) > 0 ? `무이자 ${item.month}개월 조건이 표시되어 있어 고가 상품은 월 부담액도 함께 계산해 볼 수 있습니다.` : "무이자 할부 정보가 표시되지 않았으므로 결제 단계의 카드 혜택을 별도로 확인해야 합니다.";
+  const bullets = profile.checks.map((check) => `<li><strong>${esc(check[0])}</strong> ${esc(check[1])}</li>`).join("");
+  return `<div class="detail-section decision-guide"><h2>${esc(profile.title)}</h2><div class="content-page" style="padding:0;"><p><strong>${esc(productName)}</strong>은 ${esc(profile.categoryLabel)} 상품으로, 방송 화면의 가격 문구만 보기보다 상품군별 확인 기준을 함께 보는 것이 좋습니다. 현재 표시 가격은 <strong>${priceText}</strong>이며, ${shippingText} ${installmentText}</p>${subGuide}<ul>${bullets}</ul><p>${esc(profile.note)}</p></div></div>`;
+}
+
+function subcategoryAdviceHtml(item) {
+  const category3 = decodeName(item.category3);
+  const category4 = decodeName(item.category4);
+  const text = `${category3} ${category4} ${decodeName(item.name)}`.toLowerCase();
+  const has = (...words) => words.some((word) => text.includes(word.toLowerCase()));
+  const label = [category3, category4].filter(Boolean).join(" > ");
+  let advice = "";
+  if (has("김치")) advice = "김치류는 포기김치, 갓김치, 파김치처럼 종류에 따라 숙성도와 보관 온도 체감이 다릅니다. 총 중량뿐 아니라 소분 포장 여부와 수령 후 냉장 보관 공간을 확인하세요.";
+  else if (has("과일", "사과", "블루베리")) advice = "과일류는 개당 중량, 크기 편차, 당도 보장 여부, 흠과 포함 여부를 확인하는 것이 좋습니다. 선물용이면 포장 상태와 배송 중 파손 가능성도 함께 봐야 합니다.";
+  else if (has("쌀", "잡곡", "현미", "콩", "팥")) advice = "쌀·잡곡류는 생산연도, 도정일, 보관 방식이 중요합니다. 대용량일수록 소비 속도와 보관 용기를 미리 고려해야 품질 저하를 줄일 수 있습니다.";
+  else if (has("한우", "육류", "갈비", "불고기", "삼계탕", "해장국", "곰국")) advice = "축산·탕류 상품은 부위, 양념 포함 여부, 1팩 중량, 해동 후 조리 방식이 만족도에 큰 영향을 줍니다. 냉동 보관 공간과 재냉동 가능 여부를 확인하세요.";
+  else if (has("생선", "수산", "굴비", "고등어", "갈치", "전복", "오징어")) advice = "수산물은 손질 상태, 마리 수보다 실중량, 원산지, 냉동 배송 상태를 봐야 합니다. 비린내나 해동 후 식감이 걱정된다면 조리 방식과 보관법을 먼저 확인하세요.";
+  else if (has("유산균", "효소", "분말", "환", "건강즙", "엑기스")) advice = "분말·환·즙 형태 건강식품은 1일 섭취량과 총 섭취 가능 일수를 기준으로 가격을 비교해야 합니다. 성분표와 섭취 제한 대상을 함께 확인하세요.";
+  else if (has("프라이팬", "팬세트", "밀폐용기", "플라스틱용기", "주방도구")) advice = "주방도구는 소재, 열원 호환, 세척 방식, 보관 편의성을 함께 확인해야 합니다. 세트 수량보다 실제 자주 쓰는 크기와 구성인지 보는 편이 좋습니다.";
+  else if (has("청소기", "밥솥", "냉장고", "서큘레이터", "가전")) advice = "가전류는 모델명, 소비전력, 소모품 비용, AS 기간을 우선 확인하세요. 설치나 회수가 필요한 상품은 추가 비용과 반품 제한 조건도 중요합니다.";
+  else if (has("블라우스", "팬츠", "데님", "상의", "하의", "언더웨어", "신발", "화")) advice = "패션 상품은 실측표, 소재 혼용률, 색상 선택, 세탁 방법을 확인해야 합니다. 착용 후 교환 제한이 있을 수 있어 수령 직후 상태 확인이 좋습니다.";
+  else if (has("침구", "카페트", "커버", "이불", "베개", "매트")) advice = "침구·카페트류는 소재, 세탁 가능 여부, 계절감, 사이즈를 먼저 확인하세요. 큰 부피 상품은 반품 배송비와 보관 공간도 구매 판단에 영향을 줍니다.";
+  if (!advice) return label ? `<p><strong>세부 분류 기준:</strong> ${esc(label)} 상품입니다. 같은 대분류 안에서도 세부 분류에 따라 구성품, 보관법, 반품 조건이 달라질 수 있으니 공식 상세 정보를 기준으로 확인하세요.</p>` : "";
+  return `<p><strong>세부 분류 기준:</strong> ${esc(label)} 상품입니다. ${esc(advice)}</p>`;
+}
+
+function productAdviceProfile(item, productName) {
+  const text = `${decodeName(item.category1)} ${decodeName(item.category2)} ${decodeName(item.category3)} ${decodeName(item.category4)} ${productName}`.toLowerCase();
+  const has = (...words) => words.some((word) => text.includes(word.toLowerCase()));
+  if (has("건강식품", "홍삼", "유산균", "비타민", "콜라겐", "오메가", "루테인", "프로폴리스", "여주")) {
+    return {
+      categoryLabel: "건강식품",
+      title: "건강식품 구매 전 확인 포인트",
+      checks: [["성분 기준:", "총 용량보다 1일 섭취량 기준의 주요 성분 함량, 섭취 가능 일수, 원료명을 먼저 비교하세요."], ["섭취 대상:", "임산부, 어린이, 고령자, 복용 중인 약이 있는 사람은 공식 주의사항과 섭취 제한 문구를 확인해야 합니다."], ["표현 주의:", "건강 유지에 도움을 줄 수 있다는 표현과 질병 치료·예방 표현은 다릅니다. 과장된 효능처럼 보이는 문구는 신중하게 봐야 합니다."], ["보관 방법:", "캡슐, 분말, 액상 제품은 습기와 온도에 민감할 수 있으므로 개봉 후 보관법과 소비 가능 기간을 확인하세요."]],
+      note: "건강식품은 개인의 건강 상태에 따라 체감이 크게 달라질 수 있으므로, 가격 혜택보다 성분표와 섭취 주의사항을 우선 기준으로 보는 것이 좋습니다."
+    };
+  }
+  if (has("식품", "농산", "수산", "축산", "김치", "쌀", "한우", "굴비", "과일", "반찬", "해장국", "사과")) {
+    const freshNote = has("냉동", "수산", "굴비", "한우", "축산") ? "냉동·신선식품은 수령 가능 시간과 냉동실 보관 공간까지 함께 계산해야 합니다." : "상온 식품이라도 소비기한과 개봉 후 보관법을 확인해야 낭비를 줄일 수 있습니다.";
+    return {
+      categoryLabel: "식품",
+      title: "식품 구매 전 확인 포인트",
+      checks: [["실중량:", "총 박스 수보다 실제 먹을 수 있는 중량, 개별 포장 단위, 1회분 기준 수량을 확인하세요."], ["원산지·등급:", "농축수산물은 산지, 등급, 손질 상태, 혼합 구성 여부에 따라 만족도가 크게 달라질 수 있습니다."], ["배송 조건:", freshNote], ["소비기한:", "대용량 구성은 가격이 좋아 보여도 소비 속도와 보관 공간이 맞지 않으면 오히려 부담이 될 수 있습니다."]],
+      note: "식품은 방송 이미지와 조리 예시가 실제 구성품 전체를 의미하지 않을 수 있으니, 최종 구매 전 공식 상품 상세의 구성표를 기준으로 확인하세요."
+    };
+  }
+  if (has("주방", "프라이팬", "후라이팬", "냄비", "칼", "도마", "용기", "식기", "조리")) {
+    return {
+      categoryLabel: "주방용품",
+      title: "주방용품 구매 전 확인 포인트",
+      checks: [["소재·코팅:", "스테인리스, 알루미늄, 코팅팬은 관리법과 내구성이 다르므로 소재와 코팅 종류를 먼저 보세요."], ["열원 호환:", "인덕션, 가스레인지, 하이라이트, 오븐 사용 가능 여부가 실제 사용성과 직결됩니다."], ["구성품:", "세트 수량이 많아도 자주 쓰는 크기가 빠져 있으면 활용도가 낮습니다. 팬 지름, 냄비 용량, 뚜껑 포함 여부를 확인하세요."], ["세척·보관:", "식기세척기 사용 가능 여부와 손잡이 분리, 적층 보관 가능 여부를 보면 사용 후 관리 부담을 줄일 수 있습니다."]],
+      note: "주방용품은 한 번 사면 오래 쓰는 상품이 많아 가격보다 사용 환경과 관리 편의성을 먼저 맞추는 편이 좋습니다."
+    };
+  }
+  if (has("패션", "의류", "속옷", "여성", "남성", "신발", "가방", "잡화", "언더웨어", "사이즈")) {
+    return {
+      categoryLabel: "패션·잡화",
+      title: "패션·잡화 구매 전 확인 포인트",
+      checks: [["실측표:", "평소 사이즈보다 어깨, 가슴, 허리, 총장, 밑위 같은 실측 수치를 기준으로 비교하세요."], ["색상 차이:", "방송 조명과 화면 설정 때문에 실제 색감이 달라질 수 있으므로 상세 이미지와 색상명을 함께 확인해야 합니다."], ["세트 구성:", "복수 구성 상품은 색상 선택 가능 여부, 사이즈 혼합 가능 여부, 일부 반품 가능 여부를 확인하세요."], ["교환 조건:", "착용 흔적, 세탁, 택 제거 후에는 교환·반품이 제한될 수 있어 수령 직후 상태 확인이 중요합니다."]],
+      note: "패션 상품은 가격 혜택보다 사이즈 실패와 반품 조건이 만족도를 좌우하므로, 결제 전 교환 기준을 반드시 확인하는 것이 좋습니다."
+    };
+  }
+  if (has("가전", "청소기", "건조기", "냉장", "세탁", "마사지", "전자", "설치", "디지털")) {
+    return {
+      categoryLabel: "생활가전",
+      title: "생활가전 구매 전 확인 포인트",
+      checks: [["모델명:", "비슷한 이름의 제품도 모델명에 따라 출시 시기, 구성품, 성능, AS 조건이 달라질 수 있습니다."], ["설치 조건:", "전원, 배수, 설치 공간, 벽면 간격, 기존 제품 철거 비용을 구매 전 확인하세요."], ["유지 비용:", "필터, 소모품, 전기요금, 추가 부품 비용이 있는지 보면 실제 총비용을 판단하기 쉽습니다."], ["AS 기준:", "무상 보증 기간, 출장비, 제조사와 판매처의 책임 범위를 공식 상세에서 확인해야 합니다."]],
+      note: "생활가전은 방송 중 혜택보다 설치 가능 여부와 사후관리 조건이 더 중요할 수 있습니다."
+    };
+  }
+  return {
+    categoryLabel: "홈쇼핑 편성",
+    title: "구매 전 확인 포인트",
+    checks: [["상품 구성:", "기본 구성품, 추가 구성품, 사은품을 구분해서 실제 필요한 구성인지 확인하세요."], ["최종 가격:", "방송가, 카드 할인, 쿠폰, 배송비가 결제 단계에서 어떻게 적용되는지 확인하세요."], ["반품 조건:", "개봉 후 반품 제한, 설치 상품 조건, 식품·위생 상품 예외 기준을 확인하세요."], ["공식 안내:", "본 사이트는 편성 정보를 정리하므로 최종 조건은 공영홈쇼핑 공식 상품 페이지를 기준으로 판단해야 합니다."]],
+    note: "홈쇼핑 상품은 방송 시간과 혜택이 빠르게 바뀔 수 있으니, 결제 전 공식 판매 페이지의 최신 안내를 확인하세요."
+  };
+}
+
 function productFaqHtml(item, productName, cards, relatedItems) {
   const installment = Number(item.month || 0);
   const cardText = cards.length ? ` 또한 ${esc(decodeName(cards[0].name))} 등의 카드 할인을 적용하면 더 저렴하게 구매할 수 있습니다.` : "";
@@ -253,10 +350,11 @@ function productFaqHtml(item, productName, cards, relatedItems) {
 
 async function popularPage(env) {
   const today = todayKst();
-  const rows = (await env.DB.prepare("SELECT * FROM schedule WHERE date >= ? ORDER BY views DESC, date ASC, start_time ASC LIMIT 50").bind(today).all()).results || [];
-  const list = rows.map((item, index) => `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>편성표</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`).join("");
+  const rows = (await env.DB.prepare("SELECT * FROM schedule WHERE date >= ? ORDER BY views DESC, date ASC, start_time ASC LIMIT 160").bind(today).all()).results || [];
+  const slots = groupCategorySlots(rows).slice(0, 50);
+  const list = slots.map((slot, index) => popularSlotCard(slot, { heading: "공영홈쇼핑 인기 상품" }, index)).join("");
   const empty = `<div class="empty-state"><h3>현재 표시할 인기 상품이 없습니다.</h3><p>편성표 데이터가 갱신되면 현재 방송 예정 상품 기준으로 다시 표시됩니다.</p></div>`;
-  return htmlPage("오늘 인기 공영홈쇼핑 상품 TOP 50", `<section class="hero"><div class="container"><h1>🔥 오늘 인기 상품 TOP 50</h1><p>현재 조회된 공영홈쇼핑 방송 상품을 정리했습니다.</p></div></section><section class="section"><div class="container"><h2 class="section-title">조회수 기준 인기 상품</h2><div class="popular-list">${list || empty}</div></div></section>`, env, { active: "popular", canonical: "/popular/" });
+  return htmlPage("오늘 인기 공영홈쇼핑 상품 TOP 50", `<section class="hero"><div class="container"><h1>🔥 오늘 인기 상품 TOP 50</h1><p>현재 조회된 공영홈쇼핑 방송 상품을 정리했습니다.</p></div></section><section class="section"><div class="container">${popularIntroHtml()}<h2 class="section-title">조회수 기준 인기 상품</h2><div class="popular-list">${list || empty}</div></div></section>`, env, { active: "popular", canonical: "/popular/" });
 }
 
 async function categoryPopularPage(slug, env) {
@@ -265,7 +363,7 @@ async function categoryPopularPage(slug, env) {
   const rows = await loadCategoryItems(env, slug, 120, true);
   const slots = groupCategorySlots(rows).slice(0, 30);
   const list = slots.map((slot, index) => popularSlotCard(slot, config, index)).join("");
-  return htmlPage(`${config.heading} 인기 TOP 30 - 홈쇼핑뷰`, `<section class="hero"><div class="container"><h1>${esc(config.heading)} 인기 TOP 30</h1><p>조회수와 편성 정보를 기준으로 ${esc(config.heading)}을 정리했습니다.</p></div></section><section class="section"><div class="container"><div class="popular-list">${list || emptyCategoryHtml(config)}</div></div></section>`, env, {
+  return htmlPage(`${config.heading} 인기 TOP 30 - 홈쇼핑뷰`, `<section class="hero"><div class="container"><h1>${esc(config.heading)} 인기 TOP 30</h1><p>조회수와 편성 정보를 기준으로 ${esc(config.heading)}을 정리했습니다.</p></div></section><section class="section"><div class="container">${popularIntroHtml(config)}<div class="popular-list">${list || emptyCategoryHtml(config)}</div></div></section>`, env, {
     active: "popular",
     canonical: `/popular/${slug}/`,
     description: `${config.heading} 인기 상품을 조회수 기준으로 확인하고 구매 전 체크포인트를 함께 살펴보세요.`
@@ -285,7 +383,7 @@ async function categoryLandingPage(slug, env) {
   const body = `<section class="hero"><div class="container"><h1>${esc(config.title)}</h1><p>${esc(config.description)}</p></div></section>
   ${categoryPopularPreviewHtml(config, slug, popularSlots)}
   <section class="section"><div class="container"><h2 class="section-title">오늘 이후 편성 상품</h2>${cards}</div></section>
-  <section class="section"><div class="container"><div class="content-page"><h2>구매 전 체크포인트</h2><p>${esc(config.description)} 방송 화면의 혜택 문구만 보고 바로 결제하기보다 공식 상품 페이지의 최종 조건을 함께 확인하는 것이 좋습니다.</p><ul>${config.points.map((point) => `<li>${esc(point)}</li>`).join("")}</ul><p>관련 기준을 더 자세히 보려면 <a href="/guide/${guideSlug}/">${esc(config.guide[1])}</a>를 함께 확인해 주세요.</p></div></div></section>
+  <section class="section"><div class="container"><div class="content-page"><h2>구매 전 체크포인트</h2>${categoryLongGuideHtml(slug, config)}<ul>${config.points.map((point) => `<li>${esc(point)}</li>`).join("")}</ul><p>관련 기준을 더 자세히 보려면 <a href="/guide/${guideSlug}/">${esc(config.guide[1])}</a>를 함께 확인해 주세요.</p></div></div></section>
   <section class="section"><div class="container">${faqHtml}</div></section>`;
   return htmlPage(`${config.title} - 홈쇼핑뷰`, body, env, {
     active: categoryNavActive(slug),
@@ -309,6 +407,38 @@ function popularSlotCard(slot, config, index) {
   const item = slot.main;
   const subText = slot.subs.length ? ` · 함께 방송 ${slot.subs.length}개` : "";
   return `<a class="popular-card" href="/schedule/${item.date}/${encodeURIComponent(item.item_code)}"><div class="popular-rank">${index + 1}</div><div class="popular-body"><div class="popular-meta"><span>${esc(config.heading)}</span><span>${formatDate(item.date)}</span><span>${Number(item.views || 0)}회${subText}</span></div><h3>${esc(decodeName(item.name))}</h3><p>${price(item.price)}원</p></div></a>`;
+}
+
+function categoryLongGuideHtml(slug, config) {
+  const guides = {
+    food: ["식품 홈쇼핑 상품은 가격과 양이 먼저 눈에 들어오지만, 실제 만족도는 중량 표기와 보관 조건에서 갈리는 경우가 많습니다. 같은 10팩 구성이라도 1팩 용량, 손질 상태, 양념 포함 여부, 냉장·냉동 배송 방식에 따라 체감 가치는 달라집니다. 특히 농축수산물은 산지와 등급, 수확·가공 시점, 개별 포장 방식이 중요합니다.", "대용량 식품은 1회 식사 기준으로 몇 번 먹을 수 있는지 계산해 보는 것이 좋습니다. 냉동식품은 냉동실 공간과 수령 가능 시간을 함께 고려해야 하고, 신선식품은 배송 지연이나 부재중 수령 문제가 품질에 영향을 줄 수 있습니다. 방송 화면의 조리 예시나 플레이팅 이미지는 참고 자료로 보고, 실제 구성품은 공식 상품 상세의 구성표와 원산지 표시를 기준으로 확인하는 편이 안전합니다."],
+    health: ["건강식품은 다른 상품군보다 표현을 더 조심해서 읽어야 합니다. 방송에서 강조하는 원료명이나 함량이 좋아 보여도, 실제로는 1일 섭취량 기준의 성분 함량과 총 섭취 가능 일수가 더 중요합니다. 홍삼, 유산균, 비타민, 오메가, 루테인 같은 상품은 성분명만 같아도 원료 형태와 함량, 부원료, 섭취 대상이 다를 수 있습니다.", "건강식품은 개인의 건강 상태, 복용 중인 약, 알레르기, 연령에 따라 맞지 않을 수 있습니다. 질병 치료나 예방처럼 들리는 표현은 광고 문구와 실제 기능성 표시를 구분해서 봐야 합니다. 부모님 선물용으로 구매할 때도 포장 수량보다 섭취 방법이 간단한지, 보관이 쉬운지, 공식 주의사항에 해당되는 사람이 없는지를 먼저 확인하는 것이 좋습니다."],
+    kitchen: ["주방용품은 세트 구성이 많아 보일수록 좋아 보이지만, 실제로 자주 쓰는 크기와 소재가 맞지 않으면 보관만 차지할 수 있습니다. 프라이팬, 냄비, 칼, 보관용기는 제품별로 확인해야 할 기준이 다릅니다. 코팅 제품은 코팅 종류와 금속 조리도구 사용 가능 여부, 스테인리스 제품은 연마제 제거와 관리법, 밀폐용기는 용량과 뚜껑 구조가 중요합니다.", "구매 전에는 인덕션, 가스레인지, 하이라이트, 오븐, 식기세척기 호환 여부를 확인해야 합니다. 방송에서는 세트 수량과 할인율을 강조하지만 실제 사용성은 손잡이 구조, 무게, 세척 편의성, 보관 방식에서 결정되는 경우가 많습니다. 이미 비슷한 제품이 있다면 부족한 크기나 용도만 보완하는 구성인지 따져 보는 것이 좋습니다."],
+    fashion: ["패션·잡화 상품은 방송 화면에서 착용감과 색감이 좋아 보여도 실제 수령 후 차이가 생기기 쉬운 상품군입니다. 가장 먼저 확인할 것은 평소 사이즈가 아니라 실측표입니다. 브랜드마다 어깨, 가슴, 허리, 총장 기준이 다르고, 신축성 있는 소재인지 아닌지에 따라 같은 사이즈도 착용감이 달라질 수 있습니다.", "세트 의류나 속옷, 신발, 가방 상품은 색상 선택 가능 여부와 구성품별 반품 조건을 확인해야 합니다. 조명과 화면 설정 때문에 색상이 달라 보일 수 있고, 착용 흔적이나 택 제거 후에는 교환·반품이 제한될 수 있습니다. 방송 중 혜택이 좋아 보여도 자신의 체형, 보유한 옷과의 조합, 세탁 관리 난이도까지 고려하는 편이 실패를 줄입니다."],
+    appliance: ["생활가전은 표시 가격보다 설치 가능 여부와 사후관리 조건이 더 중요할 때가 많습니다. 청소기, 주방가전, 마사지기, 계절가전처럼 상품군이 달라도 공통으로 모델명, 구성품, AS 기간, 소모품 비용을 확인해야 합니다. 비슷한 이름의 제품이라도 모델명 한 글자 차이로 출시 시기나 성능, 포함 부품이 달라질 수 있습니다.", "설치형 상품은 전원 위치, 배수 조건, 제품 크기, 문 열림 공간, 기존 제품 철거 여부를 미리 확인해야 합니다. 소형가전도 필터나 브러시 같은 소모품 비용이 반복적으로 들 수 있습니다. 방송 혜택이 큰 상품일수록 결제 전에 공식 상품 페이지에서 제조사, 보증 기간, 출장 AS 조건, 반품 제한 기준을 차분히 확인하는 것이 좋습니다."]
+  };
+  const paragraphs = guides[slug] || [`${config.description} 상품은 방송 화면의 혜택 문구만 보고 결정하기보다 구성, 가격, 배송, 반품 조건을 함께 확인하는 것이 좋습니다.`, "홈쇼핑 상품은 방송 중 조건과 공식 사이트 조건이 달라질 수 있으므로 최종 결제 전 공식 상품 페이지의 최신 안내를 기준으로 판단해야 합니다."];
+  return paragraphs.map((paragraph) => `<p>${esc(paragraph)}</p>`).join("");
+}
+
+function popularIntroHtml(config) {
+  const target = config ? config.heading : "공영홈쇼핑 상품";
+  const guide = popularRelatedGuideHtml(config);
+  return `<div class="content-page" style="margin-bottom:26px;"><h2>인기 상품을 볼 때 확인할 점</h2><p>${esc(target)} 인기 목록은 현재 편성된 상품 중 상세 페이지 조회가 많은 상품을 우선 보여줍니다. 조회수가 높다는 것은 관심이 많다는 뜻이지만, 반드시 나에게 맞는 상품이라는 의미는 아닙니다. 가격, 구성품, 배송 조건, 반품 가능 여부를 함께 확인해야 실제 구매 만족도를 판단할 수 있습니다.</p><p>같은 시간대에 함께 방송되는 상품은 하나의 방송 묶음으로 정리합니다. 대표 상품과 관련 상품의 가격이나 구성이 다를 수 있으므로, 인기 순위만 보고 바로 결제하기보다 상세 페이지에서 방송 시간, 공식 구매 링크, 상품군별 체크포인트를 함께 확인해 주세요.</p>${guide}</div>`;
+}
+
+function popularRelatedGuideHtml(config) {
+  const heading = config?.heading || "";
+  let slug = "shopping-checklist";
+  if (heading.includes("식품")) slug = "food-guide";
+  if (heading.includes("건강")) slug = "health-guide";
+  if (heading.includes("주방")) slug = "kitchenware-guide";
+  if (heading.includes("패션")) slug = "fashion-guide";
+  if (heading.includes("가전")) slug = "appliance-guide";
+  const post = GUIDE_POSTS.find((item) => item[0] === slug) || GUIDE_POSTS.find((item) => item[0] === "shopping-checklist");
+  if (!post) return "";
+  const [, title, excerpt] = post;
+  return `<div class="guide-inline-box"><h3>상세 가이드: ${esc(title)}</h3><p>${esc(excerpt)}</p><a href="/guide/${slug}/">가이드 자세히 보기</a></div>`;
 }
 
 async function channelPage(env) {
@@ -1421,7 +1551,7 @@ function htmlPage(title, body, env, options = {}) {
   const canonical = new URL((options.canonical || "/").replace(/^\//, ""), siteUrl(env)).toString();
   const description = options.description || "홈쇼핑뷰 공영홈쇼핑 편성표와 상품 정보를 한눈에 확인하세요.";
   const robotsMeta = options.robots ? `<meta name="robots" content="${esc(options.robots)}">` : "";
-  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260522" type="image/png"><link rel="shortcut icon" href="/favicon.png?v=20260522" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260522"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><link rel="stylesheet" href="/css/style.css?v=20260522-category"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
+  const page = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${robotsMeta}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="/favicon.png?v=20260522" type="image/png"><link rel="shortcut icon" href="/favicon.png?v=20260522" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260522"><meta property="og:type" content="website"><meta property="og:site_name" content="${esc(env.SITE_NAME || "홈쇼핑뷰 공영홈쇼핑")}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(new URL("og-image.png?v=20260522", siteUrl(env)).toString())}"><link rel="stylesheet" href="/css/style.css?v=20260523-adsense"></head><body>${header(options.active || "")}${body}${footer()}<script src="/js/main.js"></script></body></html>`;
   return new Response(page, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": status === 200 ? "public, max-age=300" : "no-store" } });
 }
 

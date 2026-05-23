@@ -801,6 +801,22 @@ a:hover { color: var(--accent); }
     line-height: 1.7;
 }
 
+.guide-inline-box {
+    margin-top: 18px;
+    padding: 16px 18px;
+    border-left: 4px solid var(--primary-light);
+    background: #f4f9fd;
+    border-radius: var(--radius-sm);
+}
+.guide-inline-box h3 {
+    margin-bottom: 6px;
+    color: var(--primary-dark);
+    font-size: 1rem;
+}
+.guide-inline-box p {
+    margin-bottom: 8px;
+}
+
 /* ===== POPULAR / GUIDE LISTS ===== */
 .popular-list,
 .post-list-grid {
@@ -960,8 +976,9 @@ a:hover { color: var(--accent); }
     .schedule-time { width: 100%; flex-direction: row; gap: 10px; padding: 10px 16px; }
     .schedule-img { width: 100%; height: 200px; }
     .schedule-info .product-name { font-size: 0.98rem; -webkit-line-clamp: 3; }
-    .popular-card { gap: 12px; padding: 16px; align-items: flex-start; }
-    .popular-body { flex: 1 1 0; min-width: 0; }
+    .popular-card { flex-direction: column; gap: 12px; padding: 16px; align-items: flex-start; max-width: calc(100vw - 32px); overflow: hidden; }
+    .popular-body { flex: 1 1 0; min-width: 0; max-width: 100%; }
+    .popular-body h3 { max-width: calc(100vw - 64px); }
     .popular-rank { flex-basis: 42px; width: 42px; height: 42px; border-radius: 12px; }
     .popular-body h3, .post-list-card h3 { font-size: 0.98rem; word-break: break-all; }
     .post-list-grid { grid-template-columns: 1fr; }
