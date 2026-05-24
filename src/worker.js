@@ -273,8 +273,6 @@ async function productPage(date, itemCode, env, ctx) {
           ${item.img ? `<div class="product-img-wrap"><img src="${esc(item.img)}" alt="${esc(name)}" loading="lazy"></div>` : ""}
           <div class="product-main-info"><h2>💰 가격 정보</h2><div style="margin-bottom:16px;">${Number(item.discount_rate) > 0 ? `<span style="font-size:0.9rem;color:var(--text-muted);text-decoration:line-through;">${price(item.orgin_price)}원</span><span class="discount-badge" style="margin-left:6px;">${item.discount_rate}%</span><br>` : ""}<span style="font-size:2rem;font-weight:800;color:var(--danger);">${price(item.price)}</span><span style="font-size:1.3rem;font-weight:600;color:var(--danger);">원</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">${Number(item.free_shipping) ? `<span class="tag tag-free">무료배송</span>` : ""}${Number(item.month) > 0 ? `<span class="tag tag-installment">무이자 ${item.month}개월</span>` : ""}</div>${cards.length ? `<h3 style="margin-top:18px;">카드 할인</h3>${cards.map((card) => `<div style="background:#f8f4ff;padding:8px 14px;border-radius:8px;margin-bottom:6px;"><strong>${esc(decodeName(card.name))}</strong> ${card.discount_rate || 0}% 할인</div>`).join("")}` : ""}</div>
         </div>
-        ${broadcastDetailHtml(item)}
-        ${categoryClassificationHtml(item, name)}
         ${buyUrl ? officialPurchaseHtml(item, name, buyUrl) : ""}
         ${imgList.length ? detailSection("추가 상품 이미지", `<div style="display:flex;gap:12px;flex-wrap:wrap;">${imgList.map((img) => `<img src="${esc(img)}" alt="${esc(name)} 추가 이미지" style="width:180px;height:180px;object-fit:cover;border-radius:8px;" loading="lazy">`).join("")}</div>`) : ""}
         ${productFaqHtml(item, name, cards, relatedItems)}
@@ -496,6 +494,8 @@ function productDataSignalsHtml(item, productName, cards = [], imgList = [], rel
   const current = Number(item.price || 0);
   const pcLink = Boolean(item.detail_url || item.url);
   const mobileLink = Boolean(item.m_detail_url || item.m_url);
+  const hasStrongSignal = imageCount > 0 || cardCount > 0 || discount > 0 || soldout || !isSale || !isMain || relatedItems.length > 0 || Number(item.month || 0) > 0;
+  if (!hasStrongSignal) return "";
   const cardText = cardCount ? cards.slice(0, 2).map((card) => {
     const cardName = decodeName(card.name) || "카드";
     const rate = Number(card.discount_rate || 0);
