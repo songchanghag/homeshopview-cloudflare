@@ -79,7 +79,7 @@ const CATEGORY_PAGES = {
     faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."], ["생활가전 모델명은 왜 확인해야 하나요?", "비슷한 이름의 상품이라도 모델명에 따라 출시 시기, 성능, 부속품, AS 기준이 달라질 수 있습니다. 결제 전 공식 상세의 모델명을 기준으로 확인하세요."], ["소모품 비용도 구매 전에 봐야 하나요?", "필터, 브러시, 전용 세제, 배터리처럼 반복 구매가 필요한 소모품이 있으면 실제 유지 비용이 달라집니다. 본체 가격과 함께 계산하는 것이 좋습니다."]]
   }
 };
-const PAGE_CACHE_VERSION = "2026-05-24-unique-detail-copy";
+const PAGE_CACHE_VERSION = "2026-05-24-low-similarity-detail";
 const ADSENSE_CLIENT_ID = "ca-pub-3819299014015793";
 const ADSENSE_PUBLISHER_ID = "pub-3819299014015793";
 
@@ -262,6 +262,7 @@ async function productPage(date, itemCode, env, ctx) {
           ${socialShareButtons(name, canonicalPath, env)}
         </div>
         ${productSummaryBoxHtml(item, name)}
+        ${productNameEditorialHtml(item, name)}
         ${productBroadcastInsightHtml(item, name, relatedItems, cards)}
         ${productDecisionGuideHtml(item, name)}
         ${productAppearanceHtml(item, name, appearanceStats)}
@@ -416,6 +417,69 @@ function officialPurchaseHtml(item, productName, buyUrl) {
     `구매를 결정했다면 먼저 공식 판매 페이지에서 상품 구성표와 주문 가능 여부를 확인하는 것이 좋습니다.`
   ]);
   return detailSection(title, `<p>${body}</p><a href="${esc(buyUrl)}" target="_blank" rel="noopener" class="btn-apply">공영홈쇼핑 공식 사이트에서 보기 →</a>`);
+}
+
+function productNameEditorialHtml(item, productName) {
+  const categoryPath = [item.category1, item.category2, item.category3, item.category4].map(decodeName).filter(Boolean);
+  const category4 = decodeName(item.category4) || decodeName(item.category3) || "상품";
+  const tokens = productNameKeywords(productName).slice(0, 6);
+  const bracketWords = [...productName.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]).filter(Boolean);
+  const plainName = productName.replace(/\[[^\]]+\]/g, " ").replace(/\s+/g, " ").trim();
+  const priceValue = Number(item.price || 0);
+  const priceBand = priceValue >= 200000 ? "고가" : priceValue >= 80000 ? "중고가" : priceValue >= 30000 ? "중간 가격대" : "저가";
+  const timeContext = productTimeContext(item);
+  const seed = productSeed(item, "name-editorial");
+  const gender = hasText(productName, ["여성", "우먼", "여자"]) ? "여성용" : hasText(productName, ["남성", "맨즈", "남자"]) ? "남성용" : hasText(productName, ["공용", "유니섹스"]) ? "공용" : "";
+  const purpose = productPurposeText(item, productName);
+  const optionHint = productOptionHint(productName);
+  const title = pickVariant(seed + "title", [
+    "상품명으로 읽는 구매 포인트",
+    "이 상품명이 말해주는 조건",
+    "방송 상품명 해석",
+    `${category4} 선택 전 읽어볼 부분`
+  ]);
+  const brandText = bracketWords.length
+    ? `${bracketWords.join(", ")} 표기가 있어 브랜드나 라인명을 먼저 구분할 수 있습니다. 같은 브랜드라도 뒤에 붙는 모델명, 용량, 구성 문구가 달라지면 실제 옵션이 달라질 수 있습니다.`
+    : `상품명에 대괄호 브랜드 표기가 뚜렷하지 않으므로 ${plainName.split(" ").slice(0, 4).join(" ")} 같은 핵심 단어를 기준으로 세부 구성을 확인하는 편이 좋습니다.`;
+  const keywordText = tokens.length
+    ? `상품명에서 눈에 띄는 단어는 ${tokens.map((token) => `‘${token}’`).join(", ")}입니다. 이 단어들은 검색용 키워드이면서 동시에 구성, 용도, 소재, 모델 구분의 실마리가 됩니다.`
+    : `상품명만으로 세부 옵션이 충분히 드러나지 않는 편입니다. 이 경우 공식 상세의 구성표와 선택 옵션을 더 우선해서 봐야 합니다.`;
+  const categoryText = categoryPath.length
+    ? `${categoryPath.join(" > ")} 분류에 속하므로 ${category4} 안에서 가격과 구성 기준을 맞춰 비교하는 것이 좋습니다.`
+    : `${category4} 기준으로 다른 방송 상품과 비교할 수 있습니다.`;
+  const priceText = pickVariant(seed + "price", [
+    `${price(item.price)}원은 ${priceBand}로 볼 수 있습니다. 같은 가격이라도 무료배송, 무이자, 카드 혜택이 붙는지에 따라 체감 조건은 달라집니다.`,
+    `현재 가격은 ${price(item.price)}원입니다. ${priceBand} 상품일수록 상품명 속 구성 단어와 실제 결제 화면의 옵션명이 같은지 확인해야 합니다.`,
+    `${price(item.price)}원이라는 가격은 단독으로 판단하기보다 ${category4} 안의 다른 편성 상품과 구성 기준을 맞춰 비교해야 의미가 있습니다.`
+  ]);
+  const useText = pickVariant(seed + "use", [
+    `${purpose} ${gender ? `${gender} 표기가 있으므로 착용자나 사용자 기준을 먼저 정하고 보는 편이 좋습니다.` : "사용 대상이 명확하지 않다면 공식 상세의 사이즈, 중량, 구성 설명을 기준으로 판단하세요."}`,
+    `${timeContext} 방송 상품이므로 방송 중 혜택 문구가 강조될 수 있습니다. 그래도 최종 판단은 상품명 속 모델명과 공식 상세 구성표를 함께 놓고 보는 것이 안전합니다.`,
+    `${optionHint} 상품명에 옵션 단서가 많을수록 실제 주문 화면에서 선택해야 할 항목도 늘어날 수 있습니다.`
+  ]);
+  return `<div class="detail-section name-editorial text-guide-section"><h2>${esc(title)}</h2><p>${esc(brandText)} ${esc(keywordText)}</p><p>${esc(categoryText)} ${esc(priceText)}</p><p>${esc(useText)}</p></div>`;
+}
+
+function productPurposeText(item, productName) {
+  const text = `${decodeName(item.category1)} ${decodeName(item.category2)} ${decodeName(item.category3)} ${decodeName(item.category4)} ${productName}`;
+  if (hasText(text, ["러닝화", "워킹화"])) return "걷기나 운동 목적이 드러나는 상품입니다.";
+  if (hasText(text, ["스니커즈", "샌들", "슬리퍼"])) return "일상 착화 목적에 가까운 상품입니다.";
+  if (hasText(text, ["이불", "침구", "베개", "커버"])) return "수면 환경과 계절감에 맞춰 고르는 상품입니다.";
+  if (hasText(text, ["김치", "식품", "고기", "수산", "생선", "쌀"])) return "반복 소비나 보관 계획을 함께 세워야 하는 식품 상품입니다.";
+  if (hasText(text, ["건강", "유산균", "홍삼", "비타민"])) return "섭취 대상과 성분 기준을 먼저 확인해야 하는 건강 관련 상품입니다.";
+  if (hasText(text, ["청소기", "밥솥", "비데", "가전"])) return "모델명과 AS 조건을 중심으로 비교해야 하는 상품입니다.";
+  if (hasText(text, ["팬", "냄비", "용기", "주방"])) return "실제 사용 빈도와 보관 편의성을 함께 봐야 하는 주방 상품입니다.";
+  return "방송 화면의 혜택보다 실제 구성과 사용 목적을 먼저 정리해야 하는 상품입니다.";
+}
+
+function productOptionHint(productName) {
+  const hints = [];
+  if (hasText(productName, ["1+1", "세트", "구성"])) hints.push("세트 구성");
+  if (hasText(productName, ["여성", "남성", "공용"])) hints.push("사용자 구분");
+  if (hasText(productName, ["kg", "g", "매", "팩", "종"])) hints.push("중량이나 수량");
+  if (hasText(productName, ["신규", "컬러", "색상"])) hints.push("색상 또는 신규 옵션");
+  if (hasText(productName, ["특가", "인하", "단독"])) hints.push("방송 혜택 문구");
+  return hints.length ? `${hints.join(", ")} 단서가 상품명에 포함되어 있습니다.` : "상품명에 뚜렷한 옵션 단서가 적습니다.";
 }
 
 async function isIndexableProduct(env, date, itemCode, item) {
@@ -646,8 +710,26 @@ function similarProductComparisonHtml(item, productName, similarProducts = []) {
     const diff = productComparisonDifferenceText(item, row, reasons);
     return `<li><a href="/schedule/${row.date}/${encodeURIComponent(row.item_code)}"><strong>${esc(rowName)}</strong></a><br><span>${esc(diff)}</span></li>`;
   }).join("");
-  const priceGuide = currentPrice ? `현재 상품 가격은 ${price(currentPrice)}원이므로, 비교 상품은 단순 상품명보다 가격 차이와 구성 차이를 함께 보는 것이 좋습니다.` : "현재 상품의 가격은 방송 조건에 따라 달라질 수 있으므로 공식 판매 페이지의 최종 금액을 기준으로 비교하는 것이 좋습니다.";
-  return `<div class="detail-section comparison-guide text-guide-section"><h2>비슷한 방송 상품과 비교할 점</h2><p><strong>${esc(productName)}</strong>과 같은 세부 상품군 또는 가격대가 가까운 현재 이후 대표상품을 기준으로 비교했습니다. ${esc(priceGuide)}</p><ul class="text-comparison-list">${rows}</ul><p>비슷한 이름의 상품이라도 용량, 사이즈, 구성품, 무료배송, 무이자 조건, 방송 날짜가 다르면 실제 구매 판단은 달라질 수 있습니다.</p></div>`;
+  const kind = productCategoryKind(item);
+  const guideMap = {
+    fashion: hasText(productName, ["러닝화", "워킹화", "운동화", "스니커즈", "샌들", "슬리퍼"])
+      ? `신발 상품끼리 비교할 때는 가격보다 사이즈 체계, 발볼, 쿠션 구조, 굽 높이, 소재 관리법을 먼저 맞춰 봐야 합니다. ${currentPrice ? `현재 상품은 ${price(currentPrice)}원 기준입니다.` : ""}`
+      : `패션 상품은 실측표, 소재, 색상 옵션, 착용 후 교환 제한이 구매 판단을 크게 바꿉니다. ${currentPrice ? `현재 가격은 ${price(currentPrice)}원입니다.` : ""}`,
+    food: `식품류 비교는 총액보다 실중량, 포장 단위, 원산지, 보관 방식이 중요합니다. ${currentPrice ? `${price(currentPrice)}원 기준으로 1회 소비량을 계산해 보세요.` : ""}`,
+    health: `건강식품 비교는 성분명, 1일 섭취량, 총 섭취 가능 일수, 섭취 대상 제한을 같은 기준으로 놓아야 합니다.`,
+    kitchen: `주방·생활용품은 구성 수보다 자주 쓰는 규격, 소재, 세척 방식, 보관 공간을 비교하는 편이 실용적입니다.`,
+    appliance: `가전 상품은 모델명, 설치 조건, 소모품, AS 기준이 다르면 가격 비교가 무의미해질 수 있습니다.`,
+    bedding: `침구류는 사이즈, 소재, 계절감, 세탁 가능 여부를 먼저 맞춰 비교해야 합니다.`,
+    general: currentPrice ? `현재 상품 가격은 ${price(currentPrice)}원이므로, 비교 상품은 단순 상품명보다 가격 차이와 구성 차이를 함께 보는 것이 좋습니다.` : "현재 상품의 가격은 방송 조건에 따라 달라질 수 있으므로 공식 판매 페이지의 최종 금액을 기준으로 비교하는 것이 좋습니다."
+  };
+  const heading = pickVariant(productSeed(item, "similar-heading"), ["비슷한 방송 상품과 비교할 점", "대체 상품과 달라지는 부분", "같은 상품군 비교 기준", "비교 후보를 볼 때의 차이"]);
+  const closing = pickVariant(productSeed(item, "similar-close"), [
+    "비슷한 이름의 상품이라도 용량, 사이즈, 구성품, 무료배송, 무이자 조건, 방송 날짜가 다르면 실제 구매 판단은 달라질 수 있습니다.",
+    "비교 상품은 같은 기준으로 맞춰 보아야 합니다. 상품명 일부가 같아도 모델명이나 옵션이 다르면 체감 가치는 달라집니다.",
+    "방송 상품은 회차별 혜택이 달라질 수 있으므로 비교 후보를 볼 때는 가격, 구성, 배송, 공식 판매 상태를 함께 확인하세요.",
+    "대체 상품을 찾을 때는 더 싼 상품보다 내 사용 목적과 구성 기준이 맞는 상품인지 먼저 보는 것이 좋습니다."
+  ]);
+  return `<div class="detail-section comparison-guide text-guide-section"><h2>${esc(heading)}</h2><p><strong>${esc(productName)}</strong>과 같은 세부 상품군 또는 가격대가 가까운 현재 이후 대표상품을 기준으로 비교했습니다. ${esc(guideMap[kind] || guideMap.general)}</p><ul class="text-comparison-list">${rows}</ul><p>${esc(closing)}</p></div>`;
 }
 
 function productComparisonDifferenceText(current, other, reasons = []) {
@@ -770,8 +852,19 @@ function productBuyerFitHtml(item, productName, profile) {
     fit = "조리 도구를 교체하거나 세트 구성을 한 번에 비교하려는 분에게 적합합니다.";
     check = "인덕션 호환, 코팅 관리법, 실제 자주 쓰는 크기, 세척과 보관 편의성을 확인하면 실패 가능성을 줄일 수 있습니다.";
   } else if (kind === "fashion") {
-    fit = "방송 혜택으로 의류나 잡화를 구매하되 사이즈와 교환 조건을 꼼꼼히 보고 싶은 분에게 맞습니다.";
-    check = "평소 사이즈보다 실측표와 소재, 색상 선택 가능 여부, 착용 후 교환 제한을 먼저 확인하세요.";
+    if (has("러닝화", "워킹화", "운동화")) {
+      fit = "장시간 걷거나 가벼운 운동용 신발을 찾는 분에게 맞습니다. 다만 쿠션감, 발볼, 무게, 굽 높이가 맞아야 실제 착화 만족도가 올라갑니다.";
+      check = "사이즈표뿐 아니라 발볼 여유, 뒤꿈치 쓸림 가능성, 밑창 미끄럼 방지, 실외 착화 후 교환 제한을 먼저 확인하세요.";
+    } else if (has("스니커즈", "샌들", "슬리퍼")) {
+      fit = "일상 착화용 신발을 방송 조건으로 비교하려는 분에게 맞습니다. 디자인보다 착화감과 교환 조건을 우선 확인하는 편이 좋습니다.";
+      check = "색상 선택, 굽 높이, 소재 오염 관리, 사이즈 교환 가능 여부를 공식 상세에서 확인하세요.";
+    } else if (has("팬츠", "데님", "블라우스", "티셔츠", "셔츠", "스커트")) {
+      fit = "의류를 방송 혜택으로 구매하되 핏과 소재 실패를 줄이고 싶은 분에게 맞습니다.";
+      check = "실측표, 신축성, 비침, 세탁 방식, 색상별 옵션 재고를 먼저 확인하세요.";
+    } else {
+      fit = "방송 혜택으로 의류나 잡화를 구매하되 사이즈와 교환 조건을 꼼꼼히 보고 싶은 분에게 맞습니다.";
+      check = "평소 사이즈보다 실측표와 소재, 색상 선택 가능 여부, 착용 후 교환 제한을 먼저 확인하세요.";
+    }
   } else if (kind === "appliance") {
     fit = "생활가전 구매 전 모델명과 AS, 설치 조건을 비교하려는 분에게 적합합니다.";
     check = "설치 공간, 소모품 비용, 소비전력, 무상 보증 기간, 기존 제품 철거 여부를 공식 상세에서 확인해야 합니다.";
