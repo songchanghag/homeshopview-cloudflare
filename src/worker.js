@@ -130,7 +130,7 @@ async function handleRequest(request, env, ctx) {
   if (dateMatch) return cachedPage(request, ctx, () => schedulePage(request, env, dateMatch[1]));
 
   const productMatch = path.match(/^\/schedule\/(\d{8})\/([^/]+)$/);
-  if (productMatch) return productPage(productMatch[1], productMatch[2], env, ctx);
+  if (productMatch) return cachedPage(request, ctx, () => productPage(productMatch[1], productMatch[2], env, ctx), 600);
 
   return notFoundPage(env);
 }
@@ -244,17 +244,19 @@ async function productPage(date, itemCode, env, ctx) {
   }
 
   ctx.waitUntil(env.DB.prepare("UPDATE schedule SET views = COALESCE(views, 0) + 1 WHERE date = ? AND item_code = ?").bind(date, itemCode).run());
-  const related = await env.DB.prepare("SELECT * FROM schedule WHERE date = ? AND start_time = ? AND item_code != ? ORDER BY priority ASC LIMIT 12").bind(date, item.start_time, itemCode).all();
-  const repeatAirings = await sameProductAirings(env, itemCode);
   const name = decodeName(item.name);
   const buyUrl = item.url || item.detail_url || item.m_url || item.m_detail_url;
   const cards = parseJson(item.cards, []);
   const imgList = parseJson(item.img_list, []);
   const canonicalPath = `/schedule/${date}/${encodeURIComponent(itemCode)}`;
-  const allowIndex = await isIndexableProduct(env, date, itemCode, item);
+  const allowIndex = Boolean(Number(item.main) && representative && representative.date === date && String(representative.item_code) === String(itemCode));
+  const [related, repeatAirings, similarProducts, appearanceStats] = await Promise.all([
+    env.DB.prepare("SELECT * FROM schedule WHERE date = ? AND start_time = ? AND item_code != ? ORDER BY priority ASC LIMIT 12").bind(date, item.start_time, itemCode).all(),
+    sameProductAirings(env, itemCode),
+    findSimilarActiveProducts(env, item, itemCode, 3),
+    loadProductAppearanceStats(env, item)
+  ]);
   const relatedItems = related.results || [];
-  const similarProducts = await findSimilarActiveProducts(env, item, itemCode, 3);
-  const appearanceStats = await loadProductAppearanceStats(env, item);
   const mixedDetailSections = `${sameProductAiringsHtml(item, name, repeatAirings)}${productDetailSectionMix(item, name, cards, imgList, relatedItems, similarProducts, appearanceStats, buyUrl)}`;
 
   const body = `
@@ -756,9 +758,10 @@ async function findSimilarActiveProducts(env, item, currentItemCode, limit = 3) 
     WHERE date >= ?
       AND main = 1
       AND item_code != ?
+      AND (category1 = ? OR category2 = ? OR category3 = ? OR category4 = ?)
     ORDER BY date ASC, start_time ASC, priority ASC
-    LIMIT 500
-  `).bind(today, currentItemCode).all()).results || [];
+    LIMIT 260
+  `).bind(today, currentItemCode, item.category1 || "", item.category2 || "", item.category3 || "", item.category4 || "").all()).results || [];
 
   const keywords = productNameKeywords(decodeName(item.name));
   const category2 = decodeName(item.category2);
