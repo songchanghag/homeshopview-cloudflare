@@ -263,6 +263,7 @@ async function productPage(date, itemCode, env, ctx) {
         </div>
         ${productSummaryBoxHtml(item, name)}
         ${productNameEditorialHtml(item, name)}
+        ${productDataSignalsHtml(item, name, cards, imgList, relatedItems)}
         ${productBroadcastInsightHtml(item, name, relatedItems, cards)}
         ${productDecisionGuideHtml(item, name)}
         ${productAppearanceHtml(item, name, appearanceStats)}
@@ -273,7 +274,7 @@ async function productPage(date, itemCode, env, ctx) {
           <div class="product-main-info"><h2>💰 가격 정보</h2><div style="margin-bottom:16px;">${Number(item.discount_rate) > 0 ? `<span style="font-size:0.9rem;color:var(--text-muted);text-decoration:line-through;">${price(item.orgin_price)}원</span><span class="discount-badge" style="margin-left:6px;">${item.discount_rate}%</span><br>` : ""}<span style="font-size:2rem;font-weight:800;color:var(--danger);">${price(item.price)}</span><span style="font-size:1.3rem;font-weight:600;color:var(--danger);">원</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">${Number(item.free_shipping) ? `<span class="tag tag-free">무료배송</span>` : ""}${Number(item.month) > 0 ? `<span class="tag tag-installment">무이자 ${item.month}개월</span>` : ""}</div>${cards.length ? `<h3 style="margin-top:18px;">카드 할인</h3>${cards.map((card) => `<div style="background:#f8f4ff;padding:8px 14px;border-radius:8px;margin-bottom:6px;"><strong>${esc(decodeName(card.name))}</strong> ${card.discount_rate || 0}% 할인</div>`).join("")}` : ""}</div>
         </div>
         ${broadcastDetailHtml(item)}
-        ${categoryClassificationHtml(item)}
+        ${categoryClassificationHtml(item, name)}
         ${buyUrl ? officialPurchaseHtml(item, name, buyUrl) : ""}
         ${imgList.length ? detailSection("추가 상품 이미지", `<div style="display:flex;gap:12px;flex-wrap:wrap;">${imgList.map((img) => `<img src="${esc(img)}" alt="${esc(name)} 추가 이미지" style="width:180px;height:180px;object-fit:cover;border-radius:8px;" loading="lazy">`).join("")}</div>`) : ""}
         ${productFaqHtml(item, name, cards, relatedItems)}
@@ -480,6 +481,78 @@ function productOptionHint(productName) {
   if (hasText(productName, ["신규", "컬러", "색상"])) hints.push("색상 또는 신규 옵션");
   if (hasText(productName, ["특가", "인하", "단독"])) hints.push("방송 혜택 문구");
   return hints.length ? `${hints.join(", ")} 단서가 상품명에 포함되어 있습니다.` : "상품명에 뚜렷한 옵션 단서가 적습니다.";
+}
+
+function productDataSignalsHtml(item, productName, cards = [], imgList = [], relatedItems = []) {
+  const seed = productSeed(item, "data-signals");
+  const imageCount = imgList.length;
+  const cardCount = cards.length;
+  const priority = Number(item.priority || 0);
+  const isMain = Number(item.main);
+  const isSale = Number(item.is_sale);
+  const soldout = Number(item.soldout);
+  const discount = Number(item.discount_rate || 0);
+  const origin = Number(item.orgin_price || 0);
+  const current = Number(item.price || 0);
+  const pcLink = Boolean(item.detail_url || item.url);
+  const mobileLink = Boolean(item.m_detail_url || item.m_url);
+  const cardText = cardCount ? cards.slice(0, 2).map((card) => {
+    const cardName = decodeName(card.name) || "카드";
+    const rate = Number(card.discount_rate || 0);
+    const discountPrice = Number(card.discount_price || 0);
+    const min = Number(card.min || card.min_price || 0);
+    const pricePart = discountPrice ? `적용가 ${price(discountPrice)}원` : `${rate}% 할인`;
+    const minPart = min ? `, 기준금액 ${price(min)}원 이상` : "";
+    return `${cardName} ${pricePart}${minPart}`;
+  }).join("; ") : "";
+  const visualText = imageCount
+    ? pickVariant(seed + "img", [
+      `추가 이미지가 ${imageCount}장 제공되어 대표 사진만 있는 상품보다 색상, 구성품, 디테일 컷을 더 확인하기 좋습니다.`,
+      `이미지 목록이 ${imageCount}장 더 있어 방송 화면에서 놓치기 쉬운 구성 차이를 공식 이미지로 다시 볼 수 있습니다.`,
+      `${productName}은 추가 상세 이미지 ${imageCount}장을 가진 상품입니다. 재질, 색상, 구성품을 이미지 기준으로 한 번 더 확인하세요.`
+    ])
+    : pickVariant(seed + "img-none", [
+      "추가 이미지가 많지 않은 상품이므로 대표 사진과 공식 상세 설명을 함께 봐야 합니다.",
+      "현재 저장된 추가 이미지가 없어 상품명과 공식 상세의 구성표가 더 중요한 판단 기준입니다.",
+      "대표 이미지 중심으로 확인되는 상품입니다. 색상이나 구성 차이는 공식 판매 페이지의 옵션명을 기준으로 보세요."
+    ]);
+  const priceText = discount > 0 && origin > current
+    ? pickVariant(seed + "discount", [
+      `정상가 ${price(origin)}원에서 ${discount}% 할인된 구조라 할인율과 실제 판매가를 함께 볼 필요가 있습니다.`,
+      `원가격과 판매가 차이가 있는 상품입니다. 할인율 ${discount}%가 표시되지만 최종 체감가는 카드 혜택과 배송 조건까지 합쳐야 정확합니다.`,
+      `${price(origin)}원 기준가가 함께 보이므로 할인 문구보다 실제 결제 예정 금액 ${price(current)}원을 중심으로 판단하세요.`
+    ])
+    : pickVariant(seed + "no-discount", [
+      `정상가와 판매가가 크게 분리되어 보이지 않는 상품입니다. 가격 혜택보다는 구성과 옵션 기준이 더 중요합니다.`,
+      `할인율 표시가 없는 편성 상품이므로 가격 자체보다 무료배송, 카드 혜택, 무이자 조건을 함께 보세요.`,
+      `${price(current)}원 판매가가 핵심 가격 기준입니다. 같은 상품군 안에서는 구성품 수와 공식 옵션명을 맞춰 비교하세요.`
+    ]);
+  const cardLine = cardText
+    ? pickVariant(seed + "card-line", [
+      `카드 조건은 ${cardText}로 확인됩니다. 같은 판매가라도 결제 카드에 따라 체감 가격이 달라질 수 있습니다.`,
+      `저장된 카드 혜택은 ${cardText}입니다. 카드 혜택은 행사 기간과 결제 금액 조건에 따라 적용 여부가 달라질 수 있습니다.`,
+      `${cardText} 조건이 있어 결제 전 카드 선택이 실제 부담액을 바꿀 수 있습니다.`
+    ])
+    : pickVariant(seed + "no-card-line", [
+      "카드 할인 정보는 별도로 확인되지 않습니다. 이 경우 표시 판매가와 배송·할부 조건이 가격 판단의 중심입니다.",
+      "저장된 카드 혜택이 없는 상품이라 카드 청구할인보다 기본 판매가와 구성품을 먼저 비교하는 편이 좋습니다.",
+      "별도 카드 조건이 보이지 않으므로 결제 단계에서 새 혜택이 뜨는지 한 번 더 확인하세요."
+    ]);
+  const statusText = soldout
+    ? "현재 데이터상 품절로 표시되는 상품입니다. 구매 가능 여부는 공식 페이지에서 다시 확인해야 합니다."
+    : isSale
+      ? "판매중 상태로 확인됩니다. 다만 재고와 가격은 방송 중 바뀔 수 있어 공식 페이지 기준 확인이 필요합니다."
+      : "판매중 표시가 뚜렷하지 않은 상품입니다. 편성 정보와 실제 주문 가능 여부가 다를 수 있습니다.";
+  const roleText = isMain
+    ? `이 상품은 같은 시간대 묶음에서 대표상품으로 저장되어 있습니다${priority ? `, 우선순위 값은 ${priority}입니다` : ""}. 관련 상품 ${relatedItems.length}개와 비교하면 옵션 차이를 더 잘 볼 수 있습니다.`
+    : `이 상품은 관련상품 성격으로 저장되어 있습니다${priority ? `, 묶음 안 우선순위 값은 ${priority}입니다` : ""}. 대표상품과 가격·구성이 어떻게 다른지 확인해야 합니다.`;
+  const linkText = pcLink && mobileLink
+    ? "PC용 상세 링크와 모바일 상세 링크가 모두 있어 사용하는 기기에 맞춰 공식 페이지를 확인할 수 있습니다."
+    : pcLink
+      ? "PC 공식 상세 링크가 확인됩니다. 모바일 구매 전에는 공식 사이트에서 같은 상품코드인지 다시 확인하세요."
+      : "공식 상세 링크 정보가 제한적이므로 방송 시간과 상품코드를 기준으로 공식 사이트에서 다시 찾아보는 편이 좋습니다.";
+  const heading = pickVariant(seed + "heading", ["API 원본 정보로 보는 차이", "이 상품에만 있는 데이터 단서", "편성 데이터 세부 확인", "원본 데이터 기준 체크"]);
+  return `<div class="detail-section data-signal-guide text-guide-section"><h2>${esc(heading)}</h2><p>${esc(visualText)} ${esc(priceText)}</p><p>${esc(cardLine)} ${esc(statusText)}</p><p>${esc(roleText)} ${esc(linkText)}</p></div>`;
 }
 
 async function isIndexableProduct(env, date, itemCode, item) {
@@ -791,7 +864,7 @@ function broadcastDetailHtml(item) {
   return `<div class="detail-section compact-info-section"><h2>방송 상세 정보</h2><div class="compact-info-grid">${rows.map(([label, value]) => `<div class="compact-info-item"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("")}</div></div>`;
 }
 
-function categoryClassificationHtml(item) {
+function categoryClassificationHtml(item, productName = "") {
   const rows = [
     ["대분류", decodeName(item.category1) || "미분류"],
     ["중분류", decodeName(item.category2) || "미분류"],
@@ -799,7 +872,15 @@ function categoryClassificationHtml(item) {
     ["세분류", decodeName(item.category4) || "미분류"]
   ];
   const path = rows.map(([, value]) => value).filter((value) => value && value !== "미분류").join(" > ");
-  return `<div class="detail-section compact-info-section"><h2>상품 카테고리 분류</h2><div class="compact-info-grid">${rows.map(([label, value]) => `<div class="compact-info-item"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("")}</div>${path ? `<p class="compact-info-note">이 상품은 ${esc(path)} 기준으로 분류됩니다. 같은 대분류라도 세부 분류에 따라 구성품, 보관법, 반품 조건이 달라질 수 있습니다.</p>` : ""}</div>`;
+  const c4 = decodeName(item.category4) || decodeName(item.category3) || "상품";
+  const note = path ? pickVariant(productSeed(item, "category-note"), [
+    `${productName ? `${productName}은 ` : "이 상품은 "}${path} 기준으로 분류됩니다. 특히 ${c4} 안에서는 옵션명과 실제 구성표를 같이 확인하는 것이 좋습니다.`,
+    `${path} 경로에 속하는 상품입니다. 같은 대분류라도 ${c4}처럼 세분류가 달라지면 보관법, 반품 조건, 비교 기준도 달라질 수 있습니다.`,
+    `분류 경로는 ${path}입니다. 상품명에 붙은 모델명이나 구성 단서가 이 분류와 맞는지 확인하면 비슷한 상품과 비교하기 쉽습니다.`,
+    `${c4} 세분류 기준으로 보면 가격보다 실제 구성, 사용 목적, 공식 옵션명이 더 중요한 비교 기준이 될 수 있습니다.`
+  ]) : "";
+  const heading = pickVariant(productSeed(item, "category-heading"), ["상품 카테고리 분류", "분류 기준 확인", "상품군 경로", `${c4} 분류 정보`]);
+  return `<div class="detail-section compact-info-section"><h2>${esc(heading)}</h2><div class="compact-info-grid">${rows.map(([label, value]) => `<div class="compact-info-item"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("")}</div>${note ? `<p class="compact-info-note">${esc(note)}</p>` : ""}</div>`;
 }
 
 function productDecisionGuideHtml(item, productName) {
