@@ -313,6 +313,15 @@ function pickVariant(seed, variants) {
   return variants[stableIndex(seed, variants.length)];
 }
 
+function seededShuffle(items, seed) {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = stableIndex(`${seed}-${i}`, i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 function productSeed(item, suffix = "") {
   return `${item.item_code || ""}-${item.date || ""}-${item.start_time || ""}-${decodeName(item.category4) || ""}-${suffix}`;
 }
@@ -1104,6 +1113,12 @@ function productFaqHtml(item, productName, cards, relatedItems) {
       `방송 종료 후에는 편성표보다 공식 판매 페이지의 재고와 판매 상태가 더 중요합니다. 관심 상품이면 다음 편성 날짜도 함께 확인해 보세요.`
     ])]
   ];
+  const statusQuestions = [
+    [`이 상품이 반복 편성 상품인지도 봐야 하나요?`, `같은 상품코드가 여러 날짜에 보이면 방송 회차별 가격이나 혜택이 달라질 수 있습니다. 편성 이력 기준 섹션에서 이전·이후 편성 횟수를 같이 확인하세요.`],
+    [`같은 상품명인데 가격이 다르면 왜 그런가요?`, `용량, 사이즈, 색상, 세트 구성, 카드 혜택이 다른 경우가 많습니다. 상품명 앞뒤의 옵션 문구와 공식 상세의 선택 항목을 비교하세요.`],
+    [`이미지가 비슷하면 같은 구성으로 봐도 되나요?`, `아니요. 홈쇼핑 상품은 같은 이미지 계열을 쓰더라도 사이즈나 수량, 부속품이 다를 수 있습니다. 상품코드와 구성표를 기준으로 보세요.`],
+    [`방송 시간대가 구매 판단에 영향을 주나요?`, `${productTimeContext(item)} 상품은 방송 중 혜택이 강조될 수 있습니다. 다만 조건은 방송 후 공식 페이지에서 바뀔 수 있으므로 시간보다 최종 결제 화면이 우선입니다.`]
+  ];
   const kindQuestions = {
     food: [
       [`식품류라면 가장 먼저 볼 항목은 무엇인가요?`, `원산지, 실중량, 보관 방식, 소비기한을 먼저 보세요. ${esc(decodeName(item.category4) || "해당 식품")}은 총 구성보다 1회 소비량과 냉장·냉동 보관 가능 여부가 중요합니다.`],
@@ -1134,9 +1149,67 @@ function productFaqHtml(item, productName, cards, relatedItems) {
       [`비슷한 상품과 비교할 때 핵심은 무엇인가요?`, "가격 차이만 보지 말고 구성품, 용량, 사이즈, 배송비, 할부 조건이 같은 기준인지 확인하는 것이 중요합니다."]
     ]
   };
+  const exactQuestions = categorySpecificFaqQuestions(item, productName);
   const extra = kindQuestions[kind] || kindQuestions.general;
-  const questions = [...baseQuestions.slice(0, 3), extra[stableIndex(seed + "extra", extra.length)], ...baseQuestions.slice(3, 6)];
+  const picked = [
+    ...seededShuffle(baseQuestions, seed + "base").slice(0, 3),
+    ...seededShuffle(extra, seed + "kind").slice(0, 1),
+    ...seededShuffle(exactQuestions, seed + "exact").slice(0, Math.min(2, exactQuestions.length)),
+    ...seededShuffle(statusQuestions, seed + "status").slice(0, 1)
+  ];
+  const seen = new Set();
+  const questions = picked.filter(([question]) => {
+    if (seen.has(question)) return false;
+    seen.add(question);
+    return true;
+  }).slice(0, 7);
   return `<div class="faq-section product-faq"><h2>❓ 「${esc(productName)}」 자주 묻는 질문</h2>${questions.map(([question, answer], index) => `<div class="faq-item${index === 0 ? " open" : ""}"><div class="faq-question"><span>Q. ${esc(question)}</span><span class="icon">▼</span></div><div class="faq-answer"><div class="faq-answer-inner">${answer}</div></div></div>`).join("")}</div>`;
+}
+
+function categorySpecificFaqQuestions(item, productName) {
+  const category = `${decodeName(item.category1)} ${decodeName(item.category2)} ${decodeName(item.category3)} ${decodeName(item.category4)} ${productName}`;
+  const c4 = decodeName(item.category4) || decodeName(item.category3) || "해당 상품";
+  const q = [];
+  const add = (question, answer) => q.push([question, answer]);
+  if (hasText(category, ["운동화", "워킹화", "러닝화", "스니커즈", "신발", "샌들", "슬리퍼"])) {
+    add(`${c4}는 사이즈를 어떻게 골라야 하나요?`, "신발류는 평소 사이즈만 믿기보다 발볼, 굽 높이, 깔창 구조, 소재의 늘어남을 함께 봐야 합니다. 워킹화와 러닝화는 착화 목적이 달라 쿠션감과 무게 기준도 다르게 판단하세요.");
+    add(`착화 후 교환이 쉬운가요?`, "실외 착화 흔적이 있으면 교환·반품이 제한될 수 있습니다. 실내에서 짧게 착용해 보고 발볼 압박, 뒤꿈치 쓸림, 발등 높이를 먼저 확인하는 편이 안전합니다.");
+    add(`워킹화와 러닝화는 어떤 점이 다른가요?`, "워킹화는 장시간 보행 안정감과 가벼운 착화감을, 러닝화는 충격 흡수와 반발력을 더 중점적으로 봅니다. 상품명에 운동 목적이 들어가면 그 기준을 먼저 비교하세요.");
+  }
+  if (hasText(category, ["이불", "침구", "베개", "커버", "카페트", "매트"])) {
+    add(`${c4}는 계절감을 어떻게 봐야 하나요?`, "침구류는 소재와 충전재가 계절감을 좌우합니다. 인견·시어서커는 여름용, 두꺼운 충전재나 극세사는 보온용에 가까우므로 사용 계절을 먼저 정하세요.");
+    add(`침구 사이즈는 무엇을 기준으로 확인하나요?`, "침대 폭과 매트리스 높이, 이불 여유 폭을 함께 봐야 합니다. 퀸·킹 표기가 같아도 제조사별 실측이 다를 수 있어 상세 사이즈표가 기준입니다.");
+    add(`세탁 관리가 중요한 이유는 무엇인가요?`, "큰 침구는 세탁기 용량과 건조 방식이 맞지 않으면 관리가 어렵습니다. 세탁망 사용, 건조기 제한, 커버 분리 여부를 함께 확인하세요.");
+  }
+  if (hasText(category, ["김치", "오이소박이", "파김치", "갓김치", "석박지"])) {
+    add(`${c4}는 숙성도를 어떻게 판단하나요?`, "김치류는 제조일과 배송 온도에 따라 숙성도가 빠르게 달라집니다. 바로 먹을 용도인지, 냉장고에서 익혀 먹을 용도인지에 따라 만족도가 달라질 수 있습니다.");
+    add(`김치 구성은 총 중량만 보면 되나요?`, "총 중량보다 종류별 중량 비율이 중요합니다. 포기김치가 많은 구성인지, 별미김치 비중이 높은 구성인지 확인해야 실제 소비 패턴과 맞습니다.");
+  }
+  if (hasText(category, ["고등어", "갈치", "굴비", "옥돔", "전복", "오징어", "수산", "생선"])) {
+    add(`${c4}는 마리 수보다 무엇이 중요한가요?`, "수산물은 마리 수보다 손질 후 실중량과 크기 편차가 중요합니다. 조림용, 구이용, 선물용인지에 따라 적합한 기준이 달라집니다.");
+    add(`냉동 수산물은 수령 후 어떻게 봐야 하나요?`, "수령 즉시 냉동 상태와 포장 파손 여부를 확인하세요. 일부 녹은 상태라면 재냉동보다 빠른 조리가 필요할 수 있습니다.");
+  }
+  if (hasText(category, ["한우", "소고기", "육우", "돼지고기", "삼겹살", "목살", "갈비", "불고기", "스테이크"])) {
+    add(`${c4}는 부위 표기를 어떻게 봐야 하나요?`, "육류는 브랜드보다 부위, 등급, 손질 방식, 양념 포함 여부가 중요합니다. 구이용과 조리용은 같은 중량이라도 체감 가치가 다릅니다.");
+    add(`냉동육 구성은 어떤 점을 확인해야 하나요?`, "팩 단위와 1회 조리량을 확인하세요. 대용량일수록 해동 후 재냉동을 피할 수 있는 소분 포장이 만족도에 큰 영향을 줍니다.");
+  }
+  if (hasText(category, ["밥솥", "압력", "청소기", "비데", "세정기", "서큘레이터", "냉장고", "가전"])) {
+    add(`${c4}는 모델명을 꼭 봐야 하나요?`, "가전은 비슷한 상품명이라도 모델명에 따라 부속품, 출시 시기, AS 범위가 달라질 수 있습니다. 검색과 비교는 모델명 기준으로 하는 편이 정확합니다.");
+    add(`설치나 소모품 비용도 구매 전에 봐야 하나요?`, "설치형 또는 필터형 상품은 본체 가격 외 비용이 생길 수 있습니다. 설치 가능 환경, 필터 교체 주기, 출장비 여부를 확인하세요.");
+  }
+  if (hasText(category, ["건강식품", "유산균", "홍삼", "비타민", "콜라겐", "효소", "알로에", "분말", "환"])) {
+    add(`${c4}는 섭취량을 어떻게 비교하나요?`, "총 병 수보다 1일 섭취량과 실제 섭취 가능 일수를 보세요. 같은 가격이라도 하루 기준 단가가 다르면 체감 조건이 달라집니다.");
+    add(`건강식품을 선물용으로 사도 괜찮나요?`, "섭취 대상 제한, 알레르기, 복용 중인 약과의 충돌 가능성이 있어 선물용이라면 성분과 주의사항을 더 신중히 확인해야 합니다.");
+  }
+  if (hasText(category, ["프라이팬", "냄비", "팬세트", "용기", "채칼", "슬라이서", "주방"])) {
+    add(`${c4}는 구성 수량이 많을수록 좋은가요?`, "수량보다 자주 쓰는 크기가 포함되어 있는지가 중요합니다. 큰 팬만 많거나 작은 용기만 많으면 실제 활용도가 낮을 수 있습니다.");
+    add(`주방용품 소재는 왜 확인해야 하나요?`, "스테인리스, 코팅, 플라스틱, 실리콘은 세척 방법과 열 사용 가능 범위가 다릅니다. 식기세척기와 인덕션 호환 여부도 함께 보세요.");
+  }
+  if (!q.length) {
+    add(`${c4} 상품은 무엇을 기준으로 비교하면 되나요?`, "상품명보다 세부 구성, 실제 가격, 배송 조건, 반품 기준을 먼저 비교하세요. 같은 카테고리라도 옵션이 다르면 만족도가 크게 달라질 수 있습니다.");
+    add(`비슷한 상품과 비교할 때 빠뜨리기 쉬운 점은 무엇인가요?`, "가격만 비교하면 구성품이나 배송비 차이를 놓치기 쉽습니다. 용량, 수량, 모델명, 카드 혜택을 같은 기준으로 놓고 봐야 합니다.");
+  }
+  return q;
 }
 
 async function popularPage(env) {
