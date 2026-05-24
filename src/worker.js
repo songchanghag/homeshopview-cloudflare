@@ -238,8 +238,14 @@ async function productPage(date, itemCode, env, ctx) {
     return htmlPage("종료된 편성 정보", `<section class="section"><div class="container"><div class="not-found"><h1>410</h1><p>해당 편성 정보는 종료되었거나 삭제되었습니다.</p><a class="btn-primary" href="/">최신 편성표 보기</a></div></div></section>`, env, { status: 410, robots: "noindex, follow" });
   }
 
+  const representative = await representativeProductRow(env, itemCode);
+  if (representative && (representative.date !== date || String(representative.item_code) !== String(itemCode))) {
+    return redirect(`/schedule/${representative.date}/${encodeURIComponent(representative.item_code)}`, 301);
+  }
+
   ctx.waitUntil(env.DB.prepare("UPDATE schedule SET views = COALESCE(views, 0) + 1 WHERE date = ? AND item_code = ?").bind(date, itemCode).run());
   const related = await env.DB.prepare("SELECT * FROM schedule WHERE date = ? AND start_time = ? AND item_code != ? ORDER BY priority ASC LIMIT 12").bind(date, item.start_time, itemCode).all();
+  const repeatAirings = await sameProductAirings(env, itemCode);
   const name = decodeName(item.name);
   const buyUrl = item.url || item.detail_url || item.m_url || item.m_detail_url;
   const cards = parseJson(item.cards, []);
@@ -249,7 +255,7 @@ async function productPage(date, itemCode, env, ctx) {
   const relatedItems = related.results || [];
   const similarProducts = await findSimilarActiveProducts(env, item, itemCode, 3);
   const appearanceStats = await loadProductAppearanceStats(env, item);
-  const mixedDetailSections = productDetailSectionMix(item, name, cards, imgList, relatedItems, similarProducts, appearanceStats, buyUrl);
+  const mixedDetailSections = `${sameProductAiringsHtml(item, name, repeatAirings)}${productDetailSectionMix(item, name, cards, imgList, relatedItems, similarProducts, appearanceStats, buyUrl)}`;
 
   const body = `
     <section class="section" style="padding-top:20px;"><div class="container">
@@ -599,14 +605,66 @@ async function isIndexableProduct(env, date, itemCode, item) {
   if (!item || !Number(item.main)) return false;
   const today = todayKst();
   if (date < today) return false;
-  const row = await env.DB.prepare(`
-    SELECT 1
+  const representative = await representativeProductRow(env, itemCode);
+  return Boolean(representative && representative.date === date && String(representative.item_code) === String(itemCode));
+}
+
+async function representativeProductRow(env, itemCode) {
+  const today = todayKst();
+  return await env.DB.prepare(`
+    SELECT date, item_code
     FROM schedule
-    WHERE date >= ? AND main = 1 AND date = ? AND item_code = ?
+    WHERE date >= ? AND main = 1 AND item_code = ?
     ORDER BY date ASC, start_time ASC, priority ASC
     LIMIT 1
-  `).bind(today, date, itemCode).first();
-  return Boolean(row);
+  `).bind(today, itemCode).first();
+}
+
+async function sameProductAirings(env, itemCode) {
+  const today = todayKst();
+  const rows = (await env.DB.prepare(`
+    SELECT date, start_time, end_time, runtime, item_code, name, price, orgin_price, discount_rate, free_shipping, month, url, detail_url, m_url, m_detail_url
+    FROM schedule
+    WHERE date >= ? AND main = 1 AND item_code = ?
+    ORDER BY date ASC, start_time ASC
+    LIMIT 20
+  `).bind(today, itemCode).all()).results || [];
+  return rows;
+}
+
+function sameProductAiringsHtml(item, name, airings = []) {
+  if (!airings || airings.length <= 1) return "";
+  const links = [];
+  const seen = new Set();
+  airings.forEach((row) => {
+    const url = row.url || row.detail_url || row.m_url || row.m_detail_url;
+    if (url && !seen.has(url)) {
+      seen.add(url);
+      links.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-apply">공식 상품 페이지 확인</a>`);
+    }
+  });
+  const first = airings[0];
+  const last = airings[airings.length - 1];
+  const priceValues = [...new Set(airings.map((row) => Number(row.price || 0)).filter(Boolean))];
+  const priceText = priceValues.length > 1
+    ? `반복 편성 사이에 표시 가격이 ${priceValues.map((value) => `${price(value)}원`).join(", ")}처럼 달라질 수 있습니다.`
+    : `현재 반복 편성 기준 표시 가격은 ${price(Number(item.price || 0))}원입니다.`;
+  const rows = airings.map((row) => {
+    const diff = [];
+    if (row.date !== item.date) diff.push(`${formatDate(row.date)} 방송`);
+    if (row.start_time !== item.start_time) diff.push(`${formatTime(row.start_time)}~${formatTime(row.end_time)}`);
+    if (Number(row.price || 0) !== Number(item.price || 0)) diff.push(`가격 ${price(row.price)}원`);
+    if (Number(row.free_shipping)) diff.push("무료배송");
+    if (Number(row.month || 0)) diff.push(`무이자 ${row.month}개월`);
+    return `<li><strong>${formatDate(row.date)} ${formatTime(row.start_time)} 방송</strong><span>${esc(diff.join(" · ") || "대표 편성과 같은 조건으로 표시됩니다.")}</span></li>`;
+  }).join("");
+  return `<div class="detail-section repeat-airing-section text-guide-section">
+    <h2>같은 상품 반복 편성 정보</h2>
+    <p>${esc(name)} 상품은 ${formatDate(first.date)}부터 ${formatDate(last.date)}까지 총 ${airings.length}회 편성 정보가 확인됩니다. 날짜별 상세 URL을 따로 늘리지 않고 이 대표 페이지에서 방송 일정을 함께 정리합니다.</p>
+    <p>${esc(priceText)} 방송 시간과 혜택은 편성별로 달라질 수 있으므로 결제 직전 공식 상품 페이지의 최종 조건을 확인하세요.</p>
+    <ul class="text-comparison-list">${rows}</ul>
+    ${links.length ? `<div class="merged-source-links">${links.join("")}</div>` : ""}
+  </div>`;
 }
 
 function productBroadcastInsightHtml(item, productName, relatedItems = [], cards = []) {
@@ -2613,8 +2671,17 @@ function editorialPolicyHtml() {
 
 async function sitemap(env) {
   const today = todayKst();
-  let rows = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE date >= ? AND main = 1 ORDER BY date ASC, start_time ASC, priority ASC LIMIT ?").bind(today, INDEXABLE_PRODUCT_LIMIT).all()).results || [];
-  if (!rows.length) rows = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE main = 1 ORDER BY date DESC, start_time ASC, priority ASC LIMIT ?").bind(INDEXABLE_PRODUCT_LIMIT).all()).results || [];
+  let candidates = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE date >= ? AND main = 1 ORDER BY date ASC, start_time ASC, priority ASC LIMIT ?").bind(today, INDEXABLE_PRODUCT_LIMIT * 4).all()).results || [];
+  if (!candidates.length) candidates = (await env.DB.prepare("SELECT date, item_code FROM schedule WHERE main = 1 ORDER BY date DESC, start_time ASC, priority ASC LIMIT ?").bind(INDEXABLE_PRODUCT_LIMIT * 4).all()).results || [];
+  const seenProducts = new Set();
+  const rows = [];
+  for (const row of candidates) {
+    const key = String(row.item_code || "");
+    if (!key || seenProducts.has(key)) continue;
+    seenProducts.add(key);
+    rows.push(row);
+    if (rows.length >= INDEXABLE_PRODUCT_LIMIT) break;
+  }
   const base = siteUrl(env);
   const categoryUrls = Object.keys(CATEGORY_PAGES).flatMap((slug) => [`/category/${slug}/`, `/popular/${slug}/`]);
   const staticUrls = ["/", "/intro/", "/popular/", "/channel/", "/guide/", "/data-source/", "/editorial-policy/", "/terms/", "/privacy/", "/contact/", ...categoryUrls, ...GUIDE_POSTS.map(([slug]) => `/guide/${slug}/`)];
