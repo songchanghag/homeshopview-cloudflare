@@ -79,7 +79,7 @@ const CATEGORY_PAGES = {
     faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."], ["생활가전 모델명은 왜 확인해야 하나요?", "비슷한 이름의 상품이라도 모델명에 따라 출시 시기, 성능, 부속품, AS 기준이 달라질 수 있습니다. 결제 전 공식 상세의 모델명을 기준으로 확인하세요."], ["소모품 비용도 구매 전에 봐야 하나요?", "필터, 브러시, 전용 세제, 배터리처럼 반복 구매가 필요한 소모품이 있으면 실제 유지 비용이 달라집니다. 본체 가격과 함께 계산하는 것이 좋습니다."]]
   }
 };
-const PAGE_CACHE_VERSION = "2026-05-24-category4-detail-guide";
+const PAGE_CACHE_VERSION = "2026-05-24-unique-detail-copy";
 const ADSENSE_CLIENT_ID = "ca-pub-3819299014015793";
 const ADSENSE_PUBLISHER_ID = "pub-3819299014015793";
 
@@ -248,6 +248,7 @@ async function productPage(date, itemCode, env, ctx) {
   const allowIndex = await isIndexableProduct(env, date, itemCode, item);
   const relatedItems = related.results || [];
   const similarProducts = await findSimilarActiveProducts(env, item, itemCode, 3);
+  const appearanceStats = await loadProductAppearanceStats(env, item);
 
   const body = `
     <section class="section" style="padding-top:20px;"><div class="container">
@@ -260,9 +261,10 @@ async function productPage(date, itemCode, env, ctx) {
           ${buyUrl ? `<a href="${esc(buyUrl)}" target="_blank" rel="noopener" class="btn-apply">🛒 공영홈쇼핑에서 구매하기</a>` : ""}
           ${socialShareButtons(name, canonicalPath, env)}
         </div>
-        <div class="summary-box"><h2>📋 상품 핵심 요약</h2><p><strong>${esc(name)}</strong>은 공영홈쇼핑에서 <strong>${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)}</strong> 시간대에 방송되는 <strong>${esc(decodeName(item.category1))}</strong> 상품입니다.</p><p>판매가는 <strong style="color:var(--danger);font-size:1.1em;">${price(item.price)}원</strong>이며 ${Number(item.free_shipping) ? "무료배송" : "배송비 별도"} 조건으로 표시됩니다. 실제 구매 전 공식 사이트의 최종 조건을 확인해 주세요.</p></div>
+        ${productSummaryBoxHtml(item, name)}
         ${productBroadcastInsightHtml(item, name, relatedItems, cards)}
         ${productDecisionGuideHtml(item, name)}
+        ${productAppearanceHtml(item, name, appearanceStats)}
         ${similarProductComparisonHtml(item, name, similarProducts)}
         ${sameTimeProductEditorialHtml(item, name, relatedItems)}
         <div class="product-header">
@@ -271,7 +273,7 @@ async function productPage(date, itemCode, env, ctx) {
         </div>
         ${broadcastDetailHtml(item)}
         ${categoryClassificationHtml(item)}
-        ${buyUrl ? detailSection("공식 사이트에서 구매하기", `<p>공영홈쇼핑 공식 사이트에서 상품의 상세 정보와 최종 구매 조건을 확인할 수 있습니다.</p><a href="${esc(buyUrl)}" target="_blank" rel="noopener" class="btn-apply">공영홈쇼핑 공식 사이트에서 보기 →</a>`) : ""}
+        ${buyUrl ? officialPurchaseHtml(item, name, buyUrl) : ""}
         ${imgList.length ? detailSection("추가 상품 이미지", `<div style="display:flex;gap:12px;flex-wrap:wrap;">${imgList.map((img) => `<img src="${esc(img)}" alt="${esc(name)} 추가 이미지" style="width:180px;height:180px;object-fit:cover;border-radius:8px;" loading="lazy">`).join("")}</div>`) : ""}
         ${productFaqHtml(item, name, cards, relatedItems)}
       </div>
@@ -299,6 +301,114 @@ function socialShareButtons(title, path, env) {
   </div>`;
 }
 
+function stableIndex(seed, length) {
+  if (!length) return 0;
+  let hash = 0;
+  const text = String(seed || "");
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  return hash % length;
+}
+
+function pickVariant(seed, variants) {
+  return variants[stableIndex(seed, variants.length)];
+}
+
+function productSeed(item, suffix = "") {
+  return `${item.item_code || ""}-${item.date || ""}-${item.start_time || ""}-${decodeName(item.category4) || ""}-${suffix}`;
+}
+
+function productTimeContext(item) {
+  const start = Number(String(item.start_time || "0").slice(0, 2));
+  if (start >= 5 && start < 11) return "오전 시간대";
+  if (start >= 11 && start < 15) return "낮 시간대";
+  if (start >= 15 && start < 20) return "오후 시간대";
+  if (start >= 20 && start < 24) return "저녁 시간대";
+  return "심야 시간대";
+}
+
+function shippingAdviceSentence(item) {
+  const free = Number(item.free_shipping);
+  const seed = productSeed(item, "shipping");
+  if (free) {
+    return pickVariant(seed, [
+      "무료배송으로 표시되어 기본 배송비 부담은 낮지만, 제주·도서산간 추가 비용과 반품 배송비 기준은 별도로 확인하는 편이 안전합니다.",
+      "배송비가 무료로 잡혀 있어 가격 비교가 쉽습니다. 다만 냉장·대형·설치 상품은 지역별 추가 조건이 붙을 수 있으니 공식 상세의 배송 안내를 함께 보세요.",
+      "무료배송 조건이 붙은 상품입니다. 총 결제액을 볼 때는 배송비보다 구성품, 수량, 반품 시 왕복 배송비 부담 여부를 더 꼼꼼히 비교하세요.",
+      "기본 배송비는 무료로 표시됩니다. 선물용이나 특정 날짜 수령이 필요한 경우에는 배송 가능일과 지연 가능성도 같이 확인해야 합니다."
+    ]);
+  }
+  return pickVariant(seed, [
+    "무료배송 표시가 확인되지 않아 결제 단계의 배송비가 실제 총액을 바꿀 수 있습니다. 상품가만 보고 판단하지 않는 것이 좋습니다.",
+    "배송 조건은 공식 상품 페이지에서 다시 확인해야 합니다. 특히 부피가 크거나 냉장·냉동 배송이면 추가 비용이 붙을 수 있습니다.",
+    "현재 데이터에는 무료배송 여부가 뚜렷하게 표시되지 않았습니다. 최종 결제 금액을 확인할 때 배송비 포함 금액을 기준으로 비교하세요.",
+    "배송비가 별도일 수 있으므로 같은 가격대 상품과 비교할 때는 상품가와 배송비를 합친 금액을 기준으로 보는 편이 정확합니다."
+  ]);
+}
+
+function installmentAdviceSentence(item) {
+  const month = Number(item.month || 0);
+  const seed = productSeed(item, "installment");
+  if (month > 0) {
+    const monthly = Number(item.price || 0) ? `단순 계산으로 월 약 ${price(Math.round(Number(item.price || 0) / month))}원 수준입니다.` : "";
+    return pickVariant(seed, [
+      `무이자 ${month}개월 조건이 표시됩니다. ${monthly} 다만 적용 카드와 행사 기간은 결제 단계에서 달라질 수 있습니다.`,
+      `${month}개월 무이자 할부가 가능해 한 번에 결제하는 부담을 나눌 수 있습니다. 여러 상품을 함께 구매한다면 다음 달 카드 청구액까지 계산해 보세요.`,
+      `할부 조건은 최대 ${month}개월로 보입니다. 할인은 아니므로 총 결제 금액은 그대로이고, 월별 지출 관리용 조건으로 보는 것이 좋습니다.`,
+      `무이자 할부가 붙어 있는 상품입니다. 고가 상품이라면 월 납입액뿐 아니라 반품 시 할부 취소 절차도 함께 확인하세요.`
+    ]);
+  }
+  return pickVariant(seed, [
+    "무이자 할부 개월 수는 현재 데이터에서 확인되지 않습니다. 카드사 행사에 따라 결제 단계에서 별도 조건이 보일 수 있습니다.",
+    "할부 혜택은 표시되지 않았습니다. 일시불 기준으로 부담이 큰 상품이라면 결제 전에 카드사 혜택을 다시 확인하세요.",
+    "무이자 정보가 없는 상품입니다. 최종 결제 화면에서 카드별 할부 가능 여부를 확인한 뒤 결정하는 편이 좋습니다.",
+    "할부 조건은 공식 판매 페이지 기준으로 달라질 수 있습니다. 가격이 높은 상품일수록 결제 수단별 조건을 비교하세요."
+  ]);
+}
+
+function officialCheckSentence(item, productName) {
+  return pickVariant(productSeed(item, "official"), [
+    `${productName}의 최종 판매 조건은 방송 중 안내와 공식 상품 페이지에서 달라질 수 있으므로 결제 직전 화면을 기준으로 판단하세요.`,
+    `홈쇼핑뷰는 편성 정보를 정리해 보여주는 페이지입니다. 실제 주문 전에는 공식 판매 페이지에서 옵션, 가격, 배송, 반품 기준을 다시 확인하세요.`,
+    `방송 편성표의 가격과 혜택은 사전 정보입니다. 구매 버튼으로 이동한 뒤 공식 상세의 최신 조건을 기준으로 비교하는 것이 안전합니다.`,
+    `상품명과 방송 시간은 탐색 기준으로 활용하고, 최종 결제 여부는 공영홈쇼핑 공식 페이지의 구성표와 주문 조건을 기준으로 결정하세요.`,
+    `동일 상품도 방송 회차나 판매 옵션에 따라 조건이 달라질 수 있습니다. 공식 페이지의 선택 옵션과 결제 금액을 마지막에 확인하세요.`
+  ]);
+}
+
+function productSummaryBoxHtml(item, productName) {
+  const category = decodeName(item.category1) || "홈쇼핑";
+  const category4 = decodeName(item.category4);
+  const timeContext = productTimeContext(item);
+  const lead = pickVariant(productSeed(item, "summary-lead"), [
+    `${esc(productName)}은 ${formatDate(item.date)} ${formatTime(item.start_time)}부터 ${formatTime(item.end_time)}까지 편성된 ${esc(category)} 상품입니다.`,
+    `${esc(productName)} 방송은 ${formatDate(item.date)} ${timeContext}에 배치되어 있으며, 상품군은 ${esc(category)}${category4 ? ` > ${esc(category4)}` : ""} 기준으로 볼 수 있습니다.`,
+    `${esc(productName)}은 ${formatTime(item.start_time)} 방송에서 확인할 수 있는 대표 편성 상품입니다. 가격과 혜택은 방송 전후로 달라질 수 있습니다.`,
+    `${formatDate(item.date)} 편성표에서 ${esc(productName)}은 ${Number(item.main) ? "대표 상품" : "관련 상품"}으로 분류됩니다. 같은 시간대 옵션과 함께 비교하면 좋습니다.`
+  ]);
+  const priceLine = pickVariant(productSeed(item, "summary-price"), [
+    `현재 표시 가격은 <strong style="color:var(--danger);font-size:1.1em;">${price(item.price)}원</strong>입니다. ${esc(shippingAdviceSentence(item))}`,
+    `판매가는 <strong style="color:var(--danger);font-size:1.1em;">${price(item.price)}원</strong>으로 표시됩니다. ${esc(installmentAdviceSentence(item))}`,
+    `가격 정보는 <strong style="color:var(--danger);font-size:1.1em;">${price(item.price)}원</strong> 기준입니다. ${esc(officialCheckSentence(item, productName))}`
+  ]);
+  return `<div class="summary-box"><h2>상품 핵심 요약</h2><p>${lead}</p><p>${priceLine}</p></div>`;
+}
+
+function officialPurchaseHtml(item, productName, buyUrl) {
+  const title = pickVariant(productSeed(item, "official-title"), [
+    "공식 구매 페이지 확인",
+    "공영홈쇼핑 최종 조건 확인",
+    "판매 페이지에서 다시 보기",
+    "주문 전 공식 안내 확인"
+  ]);
+  const body = pickVariant(productSeed(item, "official-body"), [
+    `${esc(productName)}의 옵션, 구성품, 배송 가능 지역, 반품 기준은 공식 판매 페이지에서 최종 확인할 수 있습니다.`,
+    `방송 편성 정보와 실제 주문 화면의 조건이 다를 수 있으므로 결제 전 공식 페이지의 가격과 혜택을 기준으로 확인하세요.`,
+    `공식 상품 페이지에서는 선택 가능한 옵션, 재고 상태, 카드 혜택, 배송 조건을 더 자세히 볼 수 있습니다.`,
+    `구매를 결정했다면 먼저 공식 판매 페이지에서 상품 구성표와 주문 가능 여부를 확인하는 것이 좋습니다.`
+  ]);
+  return detailSection(title, `<p>${body}</p><a href="${esc(buyUrl)}" target="_blank" rel="noopener" class="btn-apply">공영홈쇼핑 공식 사이트에서 보기 →</a>`);
+}
+
 async function isIndexableProduct(env, date, itemCode, item) {
   if (!item || !Number(item.main)) return false;
   const today = todayKst();
@@ -322,15 +432,30 @@ function productBroadcastInsightHtml(item, productName, relatedItems = [], cards
   const priceValue = Number(item.price || 0);
   const sameTimeText = relatedItems.length
     ? Number(item.main)
-      ? `같은 시간대에 관련 상품 ${relatedItems.length}개가 함께 편성되어 있어 옵션, 사이즈, 구성 차이를 같이 비교하는 것이 좋습니다.`
-      : `이 상품은 같은 시간대 대표 상품과 함께 노출되는 관련 상품입니다. 단독 상품처럼 보더라도 구성, 가격, 옵션이 대표 상품과 다를 수 있습니다.`
-    : "현재 같은 시간대에 함께 표시할 관련 상품은 확인되지 않습니다.";
+      ? pickVariant(productSeed(item, "same-time-main"), [
+        `같은 시간대에 관련 상품 ${relatedItems.length}개가 함께 편성되어 있어 옵션, 사이즈, 구성 차이를 같이 비교하는 것이 좋습니다.`,
+        `이 방송은 대표 상품 외에 ${relatedItems.length}개의 연계 상품이 같이 잡혀 있습니다. 가격대와 세트 구성이 어떻게 나뉘는지 확인하세요.`,
+        `동일 시간대 옵션이 ${relatedItems.length}개 확인됩니다. 상품명 앞의 사이즈, 용량, 구성 표기가 실제 선택지를 가르는 기준입니다.`,
+        `방송 화면에서는 한 상품처럼 보일 수 있지만 관련 상품 ${relatedItems.length}개가 함께 있어 선택 옵션을 분리해서 보는 편이 좋습니다.`
+      ])
+      : pickVariant(productSeed(item, "same-time-sub"), [
+        `이 상품은 같은 시간대 대표 상품과 함께 노출되는 관련 상품입니다. 단독 상품처럼 보더라도 구성, 가격, 옵션이 대표 상품과 다를 수 있습니다.`,
+        `대표 상품에 딸린 선택지 성격일 수 있으므로 본품과 가격 차이, 구성품 차이, 이미지 차이를 나누어 확인해야 합니다.`,
+        `같은 방송 묶음 안의 관련 상품입니다. 메인 상품보다 저렴하거나 비싸더라도 사이즈나 수량 기준이 다를 수 있습니다.`,
+        `동일 시간대 구성 안에서 비교해야 하는 상품입니다. 옵션명과 실제 결제 페이지의 선택 항목이 일치하는지 확인하세요.`
+      ])
+    : pickVariant(productSeed(item, "same-time-none"), [
+      "현재 같은 시간대에 함께 표시할 관련 상품은 확인되지 않습니다.",
+      "동일 시간대 묶음 상품이 없어 이 상품 자체의 가격과 구성을 중심으로 판단하면 됩니다.",
+      "같이 비교할 방송 옵션은 보이지 않습니다. 대신 같은 세분류의 다른 편성 상품과 비교하는 방식이 좋습니다.",
+      "현재 편성 기준으로는 단독 확인 상품에 가깝습니다. 방송 전후 조건 변화 여부를 공식 페이지에서 확인하세요."
+    ]);
   const priceSentence = discount > 0
     ? `정상가 ${price(item.orgin_price)}원에서 ${discount}% 할인된 ${price(item.price)}원으로 표시되어 있습니다.`
     : `판매가는 ${price(item.price)}원으로 표시되어 있습니다.`;
   const paySentence = [
-    Number(item.free_shipping) ? "무료배송 표시가 있어 배송비 포함 여부를 확인하기 쉽습니다." : "배송비 조건은 공식 상품 페이지에서 다시 확인하는 편이 안전합니다.",
-    installment > 0 ? `무이자 ${installment}개월 조건이 표시되어 월 부담액을 나누어 계산해 볼 수 있습니다.` : "무이자 할부 정보가 표시되지 않았으므로 결제 단계의 카드 조건을 확인해야 합니다.",
+    shippingAdviceSentence(item),
+    installmentAdviceSentence(item),
     cards.length ? `카드 할인 정보가 ${cards.length}건 있어 최종 결제수단에 따라 체감가가 달라질 수 있습니다.` : "별도 카드 할인 정보는 확인되지 않습니다."
   ].join(" ");
   const categorySentence = categoryPath.length >= 4
@@ -338,7 +463,8 @@ function productBroadcastInsightHtml(item, productName, relatedItems = [], cards
     : `분류는 ${esc(categoryText)} 기준으로 확인되며, 세부 모델이나 구성은 공식 상세 페이지를 함께 보는 것이 좋습니다.`;
   const categoryAngle = detailedCategoryEditorialSentence(item);
 
-  return `<div class="detail-section editorial-insight text-guide-section"><h2>이 상품을 볼 때 먼저 비교할 점</h2><p><strong>${esc(productName)}</strong>은 ${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)}에 방송되는 ${esc(productType)}입니다. ${categorySentence}</p><p>${esc(priceSentence)} ${esc(paySentence)}</p><p>${esc(categoryAngle)}</p><p>${esc(sameTimeText)}</p></div>`;
+  const heading = pickVariant(productSeed(item, "insight-heading"), ["이 상품을 볼 때 먼저 비교할 점", "방송 전 확인할 핵심 기준", "상품 조건을 읽는 순서", "편성표에서 먼저 볼 정보"]);
+  return `<div class="detail-section editorial-insight text-guide-section"><h2>${esc(heading)}</h2><p><strong>${esc(productName)}</strong>은 ${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)}에 방송되는 ${esc(productType)}입니다. ${categorySentence}</p><p>${esc(priceSentence)} ${esc(paySentence)}</p><p>${esc(categoryAngle)}</p><p>${esc(sameTimeText)}</p></div>`;
 }
 
 function detailedCategoryEditorialSentence(item) {
@@ -429,6 +555,68 @@ async function findSimilarActiveProducts(env, item, currentItemCode, limit = 3) 
 
   scored.sort((a, b) => b.score - a.score || String(a.item.date).localeCompare(String(b.item.date)) || String(a.item.start_time).localeCompare(String(b.item.start_time)));
   return scored.slice(0, limit);
+}
+
+async function loadProductAppearanceStats(env, item) {
+  const itemCode = item.item_code;
+  if (!itemCode) return { previousCount: 0, futureCount: 0, totalCount: 1, firstDate: item.date, lastDate: item.date };
+  const currentKey = `${item.date || ""}${String(item.start_time || "").padStart(4, "0")}`;
+  const row = await env.DB.prepare(`
+    SELECT
+      SUM(CASE WHEN (date || printf('%04d', COALESCE(start_time, 0))) < ? THEN 1 ELSE 0 END) AS previous_count,
+      SUM(CASE WHEN (date || printf('%04d', COALESCE(start_time, 0))) > ? THEN 1 ELSE 0 END) AS future_count,
+      COUNT(*) AS total_count,
+      MIN(date) AS first_date,
+      MAX(date) AS last_date
+    FROM schedule
+    WHERE item_code = ?
+  `).bind(currentKey, currentKey, itemCode).first();
+  return {
+    previousCount: Number(row?.previous_count || 0),
+    futureCount: Number(row?.future_count || 0),
+    totalCount: Number(row?.total_count || 1),
+    firstDate: row?.first_date || item.date,
+    lastDate: row?.last_date || item.date
+  };
+}
+
+function productAppearanceHtml(item, productName, stats) {
+  const previous = Number(stats?.previousCount || 0);
+  const future = Number(stats?.futureCount || 0);
+  const total = Number(stats?.totalCount || 1);
+  const first = stats?.firstDate ? formatDate(stats.firstDate) : formatDate(item.date);
+  const last = stats?.lastDate ? formatDate(stats.lastDate) : formatDate(item.date);
+  const sameTime = productTimeContext(item);
+  let headline;
+  let body;
+  let action;
+
+  if (previous === 0 && future === 0) {
+    headline = "이번 편성에서 처음 확인되는 상품";
+    body = `${productName}은 현재 저장된 편성표 기준으로 이번 방송 1회만 확인됩니다. 반복 편성 기록이 적은 상품은 방송 후 판매 조건이나 재편성 여부가 빠르게 바뀔 수 있습니다.`;
+    action = "관심 상품이라면 방송 시간과 공식 구매 페이지를 함께 열어 두고, 옵션과 배송 조건을 방송 전에 미리 확인하는 편이 좋습니다.";
+  } else if (previous === 0) {
+    headline = "앞으로 다시 편성될 가능성이 있는 상품";
+    body = `${productName}은 현재 방송 이전 기록은 없지만, 이후 편성표에 ${future}회 더 확인됩니다. 새로 잡힌 상품이거나 최근 편성이 시작된 상품으로 볼 수 있습니다.`;
+    action = "바로 구매하지 않아도 다음 편성 시간을 비교해 가격, 카드 혜택, 품절 여부가 어떻게 달라지는지 살펴볼 수 있습니다.";
+  } else if (previous <= 2) {
+    headline = "최근 몇 차례 반복 편성된 상품";
+    body = `${productName}은 현재 방송 전까지 ${previous}회 편성 기록이 있습니다. 아직 반복 횟수가 많지는 않지만, 같은 시간대나 비슷한 상품군에서 다시 노출되는 흐름이 보입니다.`;
+    action = "초기 반응을 확인하는 단계일 수 있으므로 같은 세분류의 다른 상품과 가격·구성 차이를 같이 비교해 보세요.";
+  } else if (previous <= 5) {
+    headline = "반복 편성이 확인되는 상품";
+    body = `${productName}은 이전에 ${previous}회 편성된 기록이 있습니다. 총 편성 확인 횟수는 ${total}회이며, ${first}부터 ${last} 사이에 방송 일정이 잡혀 있습니다.`;
+    action = "여러 번 편성된 상품은 방송 중 혜택이 회차마다 달라질 수 있습니다. 이번 ${sameTime} 방송 조건이 지난 편성과 같은지 공식 페이지에서 확인하세요.";
+  } else {
+    headline = "자주 편성되는 상품";
+    body = `${productName}은 현재 방송 전까지 ${previous}회 이상 편성된 반복 상품입니다. 전체 확인 횟수는 ${total}회로, 단발성 상품보다는 꾸준히 노출되는 편성 흐름에 가깝습니다.`;
+    action = "자주 나오는 상품일수록 급하게 결정하기보다 가격, 구성품, 카드 혜택이 더 좋은 회차가 있는지 비교하는 방식이 유리합니다.";
+  }
+
+  const futureText = future > 0
+    ? `이후 편성도 ${future}회 확인되므로 다음 방송 시간을 함께 비교할 수 있습니다.`
+    : "현재 저장된 이후 편성에서는 같은 상품코드의 추가 방송이 확인되지 않습니다.";
+  return `<div class="detail-section appearance-guide text-guide-section"><h2>편성 이력 기준</h2><p><strong>${esc(headline)}</strong></p><p>${esc(body)} ${esc(futureText)}</p><p>${esc(action)}</p></div>`;
 }
 
 function productNameKeywords(name) {
@@ -527,10 +715,17 @@ function productDecisionGuideHtml(item, productName) {
   const profile = productAdviceProfile(item, productName);
   const subGuide = subcategoryAdviceHtml(item);
   const priceText = Number(item.price || 0) > 0 ? `${price(item.price)}원` : "공식 판매가";
-  const shippingText = Number(item.free_shipping) ? "무료배송으로 표시되지만 도서산간 추가 비용은 별도 확인이 필요합니다." : "배송비 조건은 공식 상품 페이지에서 다시 확인하는 편이 안전합니다.";
-  const installmentText = Number(item.month || 0) > 0 ? `무이자 ${item.month}개월 조건이 표시되어 있어 고가 상품은 월 부담액도 함께 계산해 볼 수 있습니다.` : "무이자 할부 정보가 표시되지 않았으므로 결제 단계의 카드 혜택을 별도로 확인해야 합니다.";
+  const shippingText = shippingAdviceSentence(item);
+  const installmentText = installmentAdviceSentence(item);
+  const intro = pickVariant(productSeed(item, "decision-intro"), [
+    `${productName}은 ${profile.categoryLabel} 상품입니다. 표시 가격은 ${priceText}이며, 방송 화면의 혜택보다 실제 구성과 반품 기준을 함께 보는 편이 좋습니다.`,
+    `${productName}을 볼 때는 ${profile.categoryLabel} 분류의 일반적인 확인 기준을 먼저 잡는 것이 좋습니다. 현재 가격 기준은 ${priceText}입니다.`,
+    `${profile.categoryLabel} 상품은 이름이 비슷해도 구성과 보관 조건이 달라질 수 있습니다. ${productName}도 가격 ${priceText}와 세부 구성을 같이 비교하세요.`,
+    `이번 편성의 ${productName}은 가격, 배송, 할부 조건을 따로 나누어 확인해야 합니다. 표시 가격은 ${priceText} 기준입니다.`
+  ]);
+  const conditionLabel = pickVariant(productSeed(item, "condition-label"), ["가격·배송 조건:", "결제 전에 볼 조건:", "총액 확인:", "혜택 점검:"]);
   const bullets = profile.checks.slice(0, 3).map((check) => `<li><strong>${esc(check[0])}</strong> ${esc(check[1])}</li>`).join("");
-  return `<div class="detail-section decision-guide text-guide-section"><h2>${esc(profile.title)}</h2><p><strong>${esc(productName)}</strong>은 ${esc(profile.categoryLabel)} 상품입니다. 현재 표시 가격은 <strong>${priceText}</strong>이며, 방송 혜택보다 구성, 배송, 반품 기준을 함께 확인하는 것이 좋습니다.</p><p><strong>가격 조건:</strong> ${esc(shippingText)} ${esc(installmentText)}</p>${productBuyerFitHtml(item, productName, profile)}${subGuide ? `<div class="text-note">${subGuide}</div>` : ""}<ul class="text-check-list">${bullets}</ul><p>${esc(profile.note)}</p></div>`;
+  return `<div class="detail-section decision-guide text-guide-section"><h2>${esc(profile.title)}</h2><p>${esc(intro)}</p><p><strong>${esc(conditionLabel)}</strong> ${esc(shippingText)} ${esc(installmentText)}</p>${productBuyerFitHtml(item, productName, profile)}${subGuide ? `<div class="text-note">${subGuide}</div>` : ""}<ul class="text-check-list">${bullets}</ul><p>${esc(profile.note)}</p></div>`;
 }
 
 function hasText(text, words) {
@@ -885,16 +1080,62 @@ function productGranularAdviceProfile(item) {
 
 function productFaqHtml(item, productName, cards, relatedItems) {
   const installment = Number(item.month || 0);
-  const cardText = cards.length ? ` 또한 ${esc(decodeName(cards[0].name))} 등의 카드 할인을 적용하면 더 저렴하게 구매할 수 있습니다.` : "";
-  const relatedText = relatedItems.length ? ` 같은 시간대 관련 상품도 ${relatedItems.length}개 있으니 함께 비교해 보세요.` : "";
-  const questions = [
-    [`「${productName}」을(를) 어디에서 구매할 수 있나요?`, `「${esc(productName)}」은(는) 공영홈쇼핑 공식 사이트(gongyoungshop.kr)에서 구매하시거나, ${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)} 방송 시간에 TV 채널을 통해 주문하실 수 있습니다. 위 구매 버튼을 클릭하면 공식 상품 페이지로 이동합니다.`],
-    [`「${productName}」의 가격 ${price(item.price)}원은 확정 가격인가요?`, `본 사이트에 표시된 가격 ${price(item.price)}원은 공영홈쇼핑 API에서 제공하는 사전 등록 가격입니다. 실제 방송 중 특별 할인이나 가격 변경이 있을 수 있으니 최종 구매 가격은 공식 사이트에서 확인해 주세요.${cardText}`],
-    [`「${productName}」 배송비는 정말 무료인가요?`, Number(item.free_shipping) ? "네, 이 상품은 무료배송이 적용됩니다. 다만 제주도 및 일부 도서산간 지역은 추가 배송비가 발생할 수 있으며, 정확한 배송 조건은 공영홈쇼핑 공식 사이트의 상품 상세 페이지에서 확인하시기 바랍니다." : "이 상품은 무료배송 표시가 확인되지 않았습니다. 배송비는 상품 구성, 지역, 공식 사이트 조건에 따라 달라질 수 있으니 구매 전 공식 상품 페이지에서 확인해 주세요."],
-    [`「${productName}」을(를) 무이자 할부로 구매할 수 있나요?`, installment > 0 ? `네, 이 상품은 최대 ${installment}개월 무이자 할부가 가능합니다. 할부 적용 가능 카드사 및 세부 조건은 결제 단계에서 확인하실 수 있습니다. 단순 계산 기준으로는 월 약 ${price(Math.round(Number(item.price || 0) / installment))}원씩 나눠 부담할 수 있습니다.` : "현재 API 정보 기준으로 무이자 할부 개월 수가 확인되지 않습니다. 카드사별 행사나 결제 단계 조건에 따라 달라질 수 있으니 공식 사이트에서 최종 확인해 주세요."],
-    [`「${productName}」은(는) ${Number(item.main) ? "단독 상품" : "세트/관련 상품"}인데 무슨 뜻인가요?`, Number(item.main) ? `이 상품은 ${formatTime(item.start_time)}~${formatTime(item.end_time)} 시간대의 대표 상품입니다. 해당 시간에 가장 주력으로 소개되는 상품입니다.${relatedText}` : "이 상품은 세트/관련 상품으로, 같은 시간대의 메인 상품과 함께 소개되는 구성품이나 옵션 상품입니다. 예를 들어 메인 상품의 소용량 버전이나 리필 상품 등이 이에 해당합니다."],
-    [`「${productName}」 방송을 놓치면 어떻게 하나요?`, `방송 시간(${formatDate(item.date)} ${formatTime(item.start_time)}~${formatTime(item.end_time)})을 놓치더라도 공영홈쇼핑 공식 사이트에서 상품이 판매 중이라면 온라인으로 구매할 수 있습니다. 인기 상품의 경우 앵콜 방송이 편성될 수 있으니 편성표를 주기적으로 확인해 보세요.`]
+  const kind = productCategoryKind(item);
+  const seed = productSeed(item, "faq");
+  const cardText = cards.length ? pickVariant(seed + "card", [
+    ` ${esc(decodeName(cards[0].name))} 등 카드 혜택이 보이면 결제수단별 체감가가 달라질 수 있습니다.`,
+    ` 카드 할인 ${cards.length}건이 표시되어 있으므로 최종 결제 수단을 바꾸면 실제 부담액이 달라질 수 있습니다.`,
+    ` 카드 혜택은 행사 기간과 결제 금액 조건이 붙을 수 있어 결제 화면에서 다시 확인해야 합니다.`
+  ]) : "";
+  const relatedText = relatedItems.length ? pickVariant(seed + "related", [
+    ` 같은 시간대 관련 상품 ${relatedItems.length}개가 있어 옵션과 가격을 나눠 비교해 보세요.`,
+    ` 방송 묶음 안에 ${relatedItems.length}개의 관련 상품이 있으므로 사이즈나 구성 차이를 함께 확인하세요.`,
+    ` 동일 시간대 선택지가 ${relatedItems.length}개 확인되어 단일 상품처럼 보고 바로 결제하지 않는 편이 좋습니다.`
+  ]) : "";
+  const baseQuestions = [
+    [`「${productName}」은 어디에서 최종 확인하면 되나요?`, `${esc(productName)}은 홈쇼핑뷰에서 편성 정보를 확인한 뒤 공영홈쇼핑 공식 판매 페이지에서 옵션, 재고, 결제 금액을 마지막으로 확인하는 흐름이 좋습니다. ${esc(officialCheckSentence(item, productName))}`],
+    [`「${productName}」 가격 ${price(item.price)}원은 그대로 적용되나요?`, `표시 가격 ${price(item.price)}원은 편성 데이터 기준입니다. 방송 중 혜택, 쿠폰, 카드 행사에 따라 결제 화면의 금액이 달라질 수 있습니다.${cardText}`],
+    [`배송 조건은 어떻게 봐야 하나요?`, shippingAdviceSentence(item)],
+    [`할부나 카드 혜택은 어떻게 확인하나요?`, installment > 0 ? `${installmentAdviceSentence(item)}${cardText}` : `${installmentAdviceSentence(item)}${cardText}`],
+    [`같은 시간대 상품과는 무엇을 비교해야 하나요?`, Number(item.main) ? `이 상품은 ${formatTime(item.start_time)}~${formatTime(item.end_time)} 시간대의 대표 상품입니다.${relatedText || " 같은 시간대 관련 상품이 없으면 같은 세분류의 다른 편성을 비교하세요."}` : `이 상품은 대표 상품과 같이 노출되는 관련 상품일 수 있습니다. 가격이 다르면 용량, 색상, 사이즈, 구성품이 다른지 먼저 확인하세요.`],
+    [`방송 시간이 지나면 어떻게 확인하나요?`, pickVariant(seed + "miss", [
+      `방송 이후에도 공식 사이트에서 판매가 유지될 수 있습니다. 다만 가격과 재고는 바뀔 수 있어 방송 시간 ${formatTime(item.start_time)} 이후에는 공식 페이지 기준으로 확인하세요.`,
+      `방송을 놓쳤다면 같은 상품코드의 다음 편성이나 공식 사이트 판매 여부를 확인하면 됩니다. 인기 상품은 다시 편성될 수 있지만 조건은 회차마다 다를 수 있습니다.`,
+      `방송 종료 후에는 편성표보다 공식 판매 페이지의 재고와 판매 상태가 더 중요합니다. 관심 상품이면 다음 편성 날짜도 함께 확인해 보세요.`
+    ])]
   ];
+  const kindQuestions = {
+    food: [
+      [`식품류라면 가장 먼저 볼 항목은 무엇인가요?`, `원산지, 실중량, 보관 방식, 소비기한을 먼저 보세요. ${esc(decodeName(item.category4) || "해당 식품")}은 총 구성보다 1회 소비량과 냉장·냉동 보관 가능 여부가 중요합니다.`],
+      [`대용량 식품 구성은 어떻게 판단하나요?`, "가격이 좋아 보여도 소비 속도와 보관 공간이 맞지 않으면 부담이 될 수 있습니다. 개별 포장 여부와 남은 상품 보관 방법을 확인하세요."]
+    ],
+    health: [
+      [`건강식품은 어떤 기준으로 봐야 하나요?`, "성분명, 1회 섭취량, 총 섭취 가능 일수, 섭취 대상 제한을 먼저 확인하세요. 복용 중인 약이 있다면 성분 충돌 가능성도 봐야 합니다."],
+      [`기능성 문구만 보고 사도 되나요?`, "아니요. 기능성 표현은 참고용이고 개인 건강 상태에 따라 맞지 않을 수 있습니다. 공식 상세의 주의사항과 원료명을 함께 확인하세요."]
+    ],
+    kitchen: [
+      [`주방·생활용품은 무엇을 비교해야 하나요?`, "소재, 코팅, 실제 크기, 구성품 수, 세척 방법을 비교하세요. 세트 수량이 많아도 자주 쓰는 규격이 아니면 활용도가 낮을 수 있습니다."],
+      [`소모품이나 보관 공간도 봐야 하나요?`, "네. 필터, 패킹, 전용 부품이 필요한지와 보관할 공간이 충분한지까지 확인해야 실제 사용 부담을 줄일 수 있습니다."]
+    ],
+    fashion: [
+      [`패션 상품은 사이즈를 어떻게 봐야 하나요?`, "평소 사이즈보다 실측표를 기준으로 보세요. 소재의 신축성, 안감, 두께, 교환 가능 조건도 함께 확인해야 합니다."],
+      [`색상이나 옵션은 방송 화면과 같나요?`, "조명과 화면 설정에 따라 색감이 달라질 수 있습니다. 공식 상세 이미지와 옵션명을 기준으로 선택하는 편이 안전합니다."]
+    ],
+    appliance: [
+      [`가전 상품은 모델명이 왜 중요한가요?`, "비슷한 상품명이라도 모델명에 따라 출시 시기, 성능, 소모품, AS 조건이 달라질 수 있습니다. 공식 상세의 모델명을 기준으로 비교하세요."],
+      [`설치형 상품은 무엇을 미리 봐야 하나요?`, "설치 공간, 전원, 배수, 기존 제품 철거 비용, 출장비 여부를 확인해야 합니다. 설치 후 반품은 제한될 수 있습니다."]
+    ],
+    bedding: [
+      [`침구류는 무엇을 기준으로 골라야 하나요?`, "사이즈, 소재, 계절감, 세탁 가능 여부를 먼저 보세요. 침대 규격과 맞지 않으면 가격이 좋아도 사용하기 어렵습니다."],
+      [`개봉 후 반품이 가능한가요?`, "침구류는 위생 상품이라 개봉 후 단순 변심 반품이 제한될 수 있습니다. 포장 개봉 기준과 교환 조건을 먼저 확인하세요."]
+    ],
+    general: [
+      [`이 상품군은 어떤 기준으로 비교해야 하나요?`, "상품명보다 구성표, 가격 조건, 배송 방식, 반품 기준을 먼저 보세요. 같은 이름처럼 보여도 옵션이 다를 수 있습니다."],
+      [`비슷한 상품과 비교할 때 핵심은 무엇인가요?`, "가격 차이만 보지 말고 구성품, 용량, 사이즈, 배송비, 할부 조건이 같은 기준인지 확인하는 것이 중요합니다."]
+    ]
+  };
+  const extra = kindQuestions[kind] || kindQuestions.general;
+  const questions = [...baseQuestions.slice(0, 3), extra[stableIndex(seed + "extra", extra.length)], ...baseQuestions.slice(3, 6)];
   return `<div class="faq-section product-faq"><h2>❓ 「${esc(productName)}」 자주 묻는 질문</h2>${questions.map(([question, answer], index) => `<div class="faq-item${index === 0 ? " open" : ""}"><div class="faq-question"><span>Q. ${esc(question)}</span><span class="icon">▼</span></div><div class="faq-answer"><div class="faq-answer-inner">${answer}</div></div></div>`).join("")}</div>`;
 }
 
