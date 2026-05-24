@@ -79,7 +79,7 @@ const CATEGORY_PAGES = {
     faq: [["생활가전은 가격만 보고 사도 되나요?", "아니요. 모델명, AS, 설치 조건, 소모품 비용, 소비전력까지 함께 확인해야 실제 비용을 판단할 수 있습니다."], ["설치 상품은 반품이 쉬운가요?", "설치 후에는 단순 변심 반품이 제한되거나 철거 비용이 발생할 수 있으므로 설치 전 조건을 확인해야 합니다."], ["구성품은 어디에서 확인해야 하나요?", "방송 설명과 공식 상품 페이지의 기본 구성품, 추가 구성품, 사은품 안내를 함께 확인해야 합니다."], ["생활가전 모델명은 왜 확인해야 하나요?", "비슷한 이름의 상품이라도 모델명에 따라 출시 시기, 성능, 부속품, AS 기준이 달라질 수 있습니다. 결제 전 공식 상세의 모델명을 기준으로 확인하세요."], ["소모품 비용도 구매 전에 봐야 하나요?", "필터, 브러시, 전용 세제, 배터리처럼 반복 구매가 필요한 소모품이 있으면 실제 유지 비용이 달라집니다. 본체 가격과 함께 계산하는 것이 좋습니다."]]
   }
 };
-const PAGE_CACHE_VERSION = "2026-05-24-low-similarity-detail";
+const PAGE_CACHE_VERSION = "2026-05-24-section-mix-detail";
 const ADSENSE_CLIENT_ID = "ca-pub-3819299014015793";
 const ADSENSE_PUBLISHER_ID = "pub-3819299014015793";
 
@@ -249,6 +249,7 @@ async function productPage(date, itemCode, env, ctx) {
   const relatedItems = related.results || [];
   const similarProducts = await findSimilarActiveProducts(env, item, itemCode, 3);
   const appearanceStats = await loadProductAppearanceStats(env, item);
+  const mixedDetailSections = productDetailSectionMix(item, name, cards, imgList, relatedItems, similarProducts, appearanceStats, buyUrl);
 
   const body = `
     <section class="section" style="padding-top:20px;"><div class="container">
@@ -261,21 +262,7 @@ async function productPage(date, itemCode, env, ctx) {
           ${buyUrl ? `<a href="${esc(buyUrl)}" target="_blank" rel="noopener" class="btn-apply">🛒 공영홈쇼핑에서 구매하기</a>` : ""}
           ${socialShareButtons(name, canonicalPath, env)}
         </div>
-        ${productSummaryBoxHtml(item, name)}
-        ${productNameEditorialHtml(item, name)}
-        ${productDataSignalsHtml(item, name, cards, imgList, relatedItems)}
-        ${productBroadcastInsightHtml(item, name, relatedItems, cards)}
-        ${productDecisionGuideHtml(item, name)}
-        ${productAppearanceHtml(item, name, appearanceStats)}
-        ${similarProductComparisonHtml(item, name, similarProducts)}
-        ${sameTimeProductEditorialHtml(item, name, relatedItems)}
-        <div class="product-header">
-          ${item.img ? `<div class="product-img-wrap"><img src="${esc(item.img)}" alt="${esc(name)}" loading="lazy"></div>` : ""}
-          <div class="product-main-info"><h2>💰 가격 정보</h2><div style="margin-bottom:16px;">${Number(item.discount_rate) > 0 ? `<span style="font-size:0.9rem;color:var(--text-muted);text-decoration:line-through;">${price(item.orgin_price)}원</span><span class="discount-badge" style="margin-left:6px;">${item.discount_rate}%</span><br>` : ""}<span style="font-size:2rem;font-weight:800;color:var(--danger);">${price(item.price)}</span><span style="font-size:1.3rem;font-weight:600;color:var(--danger);">원</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">${Number(item.free_shipping) ? `<span class="tag tag-free">무료배송</span>` : ""}${Number(item.month) > 0 ? `<span class="tag tag-installment">무이자 ${item.month}개월</span>` : ""}</div>${cards.length ? `<h3 style="margin-top:18px;">카드 할인</h3>${cards.map((card) => `<div style="background:#f8f4ff;padding:8px 14px;border-radius:8px;margin-bottom:6px;"><strong>${esc(decodeName(card.name))}</strong> ${card.discount_rate || 0}% 할인</div>`).join("")}` : ""}</div>
-        </div>
-        ${buyUrl ? officialPurchaseHtml(item, name, buyUrl) : ""}
-        ${imgList.length ? detailSection("추가 상품 이미지", `<div style="display:flex;gap:12px;flex-wrap:wrap;">${imgList.map((img) => `<img src="${esc(img)}" alt="${esc(name)} 추가 이미지" style="width:180px;height:180px;object-fit:cover;border-radius:8px;" loading="lazy">`).join("")}</div>`) : ""}
-        ${productFaqHtml(item, name, cards, relatedItems)}
+        ${mixedDetailSections}
       </div>
     </div></section>`;
 
@@ -382,6 +369,59 @@ function officialCheckSentence(item, productName) {
     `상품명과 방송 시간은 탐색 기준으로 활용하고, 최종 결제 여부는 공영홈쇼핑 공식 페이지의 구성표와 주문 조건을 기준으로 결정하세요.`,
     `동일 상품도 방송 회차나 판매 옵션에 따라 조건이 달라질 수 있습니다. 공식 페이지의 선택 옵션과 결제 금액을 마지막에 확인하세요.`
   ]);
+}
+
+function productDetailSectionMix(item, name, cards, imgList, relatedItems, similarProducts, appearanceStats, buyUrl) {
+  const seed = productSeed(item, "section-mix");
+  const variant = stableIndex(seed, 8);
+  const faqCount = 3 + stableIndex(`${seed}-faq-count`, 3);
+  const optionalOfficial = buyUrl && stableIndex(`${seed}-official`, 3) === 0 ? officialPurchaseHtml(item, name, buyUrl) : "";
+  const optionalImages = imgList.length && stableIndex(`${seed}-images`, 4) === 1
+    ? detailSection("추가 상품 이미지", `<div style="display:flex;gap:12px;flex-wrap:wrap;">${imgList.slice(0, 6).map((img) => `<img src="${esc(img)}" alt="${esc(name)} 추가 이미지" style="width:180px;height:180px;object-fit:cover;border-radius:8px;" loading="lazy">`).join("")}</div>`)
+    : "";
+  const blocks = {
+    summary: productSummaryBoxHtml(item, name),
+    name: productNameEditorialHtml(item, name),
+    data: productDataSignalsHtml(item, name, cards, imgList, relatedItems),
+    broadcast: productBroadcastInsightHtml(item, name, relatedItems, cards),
+    decision: productDecisionGuideHtml(item, name),
+    appearance: productAppearanceHtml(item, name, appearanceStats),
+    similar: similarProductComparisonHtml(item, name, similarProducts),
+    sameTime: sameTimeProductEditorialHtml(item, name, relatedItems),
+    price: productPriceInfoHtml(item, name, cards),
+    official: optionalOfficial,
+    images: optionalImages,
+    faq: productFaqHtml(item, name, cards, relatedItems, faqCount)
+  };
+  const patterns = [
+    ["summary", "name", "price", "decision", "similar", "sameTime", "faq"],
+    ["summary", "data", "broadcast", "price", "appearance", "decision", "faq"],
+    ["name", "summary", "decision", "price", "sameTime", "similar", "official", "faq"],
+    ["summary", "broadcast", "appearance", "price", "data", "faq"],
+    ["name", "decision", "summary", "similar", "price", "images", "faq"],
+    ["summary", "data", "price", "sameTime", "appearance", "faq"],
+    ["broadcast", "summary", "price", "decision", "official", "similar", "faq"],
+    ["summary", "appearance", "name", "price", "images", "sameTime", "faq"]
+  ];
+  const selected = patterns[variant]
+    .map((key) => blocks[key])
+    .filter(Boolean);
+  if (!selected.some((html) => html.includes("product-header"))) {
+    selected.splice(Math.min(2, selected.length), 0, blocks.price);
+  }
+  if (selected.length < 5) {
+    ["summary", "decision", "broadcast", "appearance", "faq"].forEach((key) => {
+      if (blocks[key] && !selected.includes(blocks[key])) selected.push(blocks[key]);
+    });
+  }
+  return selected.join("\n");
+}
+
+function productPriceInfoHtml(item, name, cards = []) {
+  return `<div class="product-header">
+    ${item.img ? `<div class="product-img-wrap"><img src="${esc(item.img)}" alt="${esc(name)}" loading="lazy"></div>` : ""}
+    <div class="product-main-info"><h2>💰 가격 정보</h2><div style="margin-bottom:16px;">${Number(item.discount_rate) > 0 ? `<span style="font-size:0.9rem;color:var(--text-muted);text-decoration:line-through;">${price(item.orgin_price)}원</span><span class="discount-badge" style="margin-left:6px;">${item.discount_rate}%</span><br>` : ""}<span style="font-size:2rem;font-weight:800;color:var(--danger);">${price(item.price)}</span><span style="font-size:1.3rem;font-weight:600;color:var(--danger);">원</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;">${Number(item.free_shipping) ? `<span class="tag tag-free">무료배송</span>` : ""}${Number(item.month) > 0 ? `<span class="tag tag-installment">무이자 ${item.month}개월</span>` : ""}</div>${cards.length ? `<h3 style="margin-top:18px;">카드 할인</h3>${cards.map((card) => `<div style="background:#f8f4ff;padding:8px 14px;border-radius:8px;margin-bottom:6px;"><strong>${esc(decodeName(card.name))}</strong> ${card.discount_rate || 0}% 할인</div>`).join("")}` : ""}</div>
+  </div>`;
 }
 
 function productSummaryBoxHtml(item, productName) {
@@ -1261,7 +1301,7 @@ function productGranularAdviceProfile(item) {
   return null;
 }
 
-function productFaqHtml(item, productName, cards, relatedItems) {
+function productFaqHtml(item, productName, cards, relatedItems, limit = 6) {
   const installment = Number(item.month || 0);
   const kind = productCategoryKind(item);
   const seed = productSeed(item, "faq");
@@ -1336,7 +1376,7 @@ function productFaqHtml(item, productName, cards, relatedItems) {
     if (seen.has(question)) return false;
     seen.add(question);
     return true;
-  }).slice(0, 7);
+  }).slice(0, Math.max(3, Math.min(7, limit)));
   return `<div class="faq-section product-faq"><h2>❓ 「${esc(productName)}」 자주 묻는 질문</h2>${questions.map(([question, answer], index) => `<div class="faq-item${index === 0 ? " open" : ""}"><div class="faq-question"><span>Q. ${esc(question)}</span><span class="icon">▼</span></div><div class="faq-answer"><div class="faq-answer-inner">${answer}</div></div></div>`).join("")}</div>`;
 }
 
