@@ -1,4 +1,4 @@
-import { Mail, Clock, MessageSquare, Phone, MapPin, AlertCircle } from "lucide-react";
+import { Mail, Clock, MessageSquare, AlertCircle } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import SeoHead from "@/components/layout/SeoHead";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
@@ -41,36 +41,6 @@ export default function Contact() {
             </a>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div className="bg-card border border-card-border rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                  <Phone size={18} className="text-muted-foreground" />
-                </div>
-                <p className="font-semibold text-foreground">전화</p>
-              </div>
-              <a
-                href={`tel:${siteConfig.phone}`}
-                className="text-sm text-primary hover:underline font-medium"
-              >
-                {siteConfig.phone}
-              </a>
-              <p className="text-xs text-muted-foreground mt-1">평일 09:00~18:00</p>
-            </div>
-
-            <div className="bg-card border border-card-border rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                  <MapPin size={18} className="text-muted-foreground" />
-                </div>
-                <p className="font-semibold text-foreground">주소</p>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {siteConfig.address}
-              </p>
-            </div>
-          </div>
-
           <div className="bg-card border border-card-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
@@ -82,6 +52,7 @@ export default function Contact() {
               <p>• 이메일 문의에 대한 답변은 영업일 기준 <strong className="text-foreground">2~3일 이내</strong>를 원칙으로 합니다.</p>
               <p>• 문의량에 따라 다소 지연될 수 있으며, 이 점 양해 부탁드립니다.</p>
               <p>• 주말·공휴일에는 답변이 지연될 수 있습니다.</p>
+              <p>• 이 사이트의 연락 수단은 이메일로만 운영되며 전화 상담이나 방문 상담은 제공하지 않습니다.</p>
             </div>
           </div>
 

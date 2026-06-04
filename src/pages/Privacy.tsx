@@ -114,9 +114,7 @@ export default function Privacy() {
                 <strong>이메일:</strong>{" "}
                 <a href={`mailto:${siteConfig.email}`} className="text-primary hover:underline">
                   {siteConfig.email}
-                </a><br />
-                <strong>전화:</strong> {siteConfig.phone}<br />
-                <strong>주소:</strong> {siteConfig.address}
+                </a>
               </p>
             </div>
           </section>

@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { MapPin, Phone, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { siteConfig } from "@/data/siteConfig";
 
 function SiteLogo({ size = 28 }: { size?: number }) {
@@ -39,18 +39,9 @@ export default function Footer() {
             </p>
 
             <div className="mt-4 space-y-2">
-              <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                <MapPin size={14} className="mt-0.5 shrink-0 text-primary/60" />
-                <span>{siteConfig.address}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone size={14} className="shrink-0 text-primary/60" />
-                <a href={`tel:${siteConfig.phone}`} className="hover:text-foreground transition-colors">
-                  {siteConfig.phone}
-                </a>
-              </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail size={14} className="shrink-0 text-primary/60" />
+                <span>문의 이메일</span>
                 <a href={`mailto:${siteConfig.email}`} className="hover:text-foreground transition-colors">
                   {siteConfig.email}
                 </a>
@@ -99,15 +90,6 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">문의 이메일</p>
-              <a
-                href={`mailto:${siteConfig.email}`}
-                className="text-sm text-primary hover:underline"
-              >
-                {siteConfig.email}
-              </a>
-            </div>
           </div>
         </div>
 

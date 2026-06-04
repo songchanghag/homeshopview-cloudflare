@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
-  Pen, BookOpen, ArrowRight, CheckCircle, Mail, Phone,
-  MapPin, Target, FileText, RefreshCw, Users, MessageCircle
+  Pen, BookOpen, ArrowRight, CheckCircle, Mail,
+  Target, FileText, RefreshCw, Users, MessageCircle
 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import SeoHead from "@/components/layout/SeoHead";
@@ -86,8 +86,6 @@ export default function Author() {
             "@type": "Person",
             name: siteConfig.owner,
             email: siteConfig.email,
-            telephone: siteConfig.phone,
-            address: { "@type": "PostalAddress", streetAddress: siteConfig.address },
             url: `${siteConfig.url}/author`,
             worksFor: {
               "@type": "Organization",
@@ -123,14 +121,6 @@ export default function Author() {
                   <Mail size={14} />
                   {siteConfig.email}
                 </a>
-                <a href={`tel:${siteConfig.phone}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                  <Phone size={14} />
-                  {siteConfig.phone}
-                </a>
-                <span className="flex items-center gap-1.5">
-                  <MapPin size={14} />
-                  {siteConfig.address}
-                </span>
               </div>
             </div>
           </div>

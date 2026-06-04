@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import Layout from "@/components/layout/Layout";
 import SeoHead from "@/components/layout/SeoHead";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
@@ -79,12 +80,11 @@ export default function Terms() {
           <section>
             <h2>제5조 (정보의 정확성 및 면책)</h2>
             <p>
-              본 사이트에서 제공하는 정보는 공개된 자료를 바탕으로 정리된 참고 목적의 정보입니다.
-              정보의 정확성, 완전성, 최신성을 보장하지 않으며, 실제 입점 조건·절차·수수료 등은
-              공영홈쇼핑 공식 채널을 통해 직접 확인하시기 바랍니다.
+              본 사이트의 정보는 입점 준비를 돕기 위한 일반 참고 자료입니다.
+              실제 입점 조건·절차·수수료 등 중요한 사항은 공영홈쇼핑 공식 채널을 통해 직접 확인하시기 바랍니다.
             </p>
             <p className="mt-3">
-              이용자가 본 사이트의 정보를 기반으로 내린 결정의 결과에 대해 운영자는 법적 책임을 지지 않습니다.
+              정보 이용 한계와 책임 범위에 관한 자세한 내용은 <Link href="/disclaimer" className="text-primary hover:underline">면책고지</Link>를 확인해 주세요.
             </p>
           </section>
 
@@ -112,7 +112,7 @@ export default function Terms() {
             <h2>제8조 (준거법 및 관할)</h2>
             <p>
               본 약관은 대한민국 법령에 따라 해석·적용됩니다.
-              본 사이트 이용과 관련하여 분쟁이 발생한 경우 운영자의 주소지를 관할하는 법원을 전속 관할 법원으로 합니다.
+              본 사이트 이용과 관련하여 분쟁이 발생한 경우 관련 법령에서 정한 절차에 따라 해결합니다.
             </p>
           </section>
 
@@ -133,9 +133,7 @@ export default function Terms() {
                 <strong>이메일:</strong>{" "}
                 <a href={`mailto:${siteConfig.email}`} className="text-primary hover:underline">
                   {siteConfig.email}
-                </a><br />
-                <strong>전화:</strong> {siteConfig.phone}<br />
-                <strong>주소:</strong> {siteConfig.address}
+                </a>
               </p>
             </div>
           </section>
