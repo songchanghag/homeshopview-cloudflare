@@ -9,7 +9,7 @@ import { posts as defaultPosts, PostType } from "@/data/posts";
 import { columns as defaultColumns, ColumnType } from "@/data/columns";
 import { categories } from "@/data/categories";
 
-type Section = "dashboard" | "posts" | "columns" | "categories" | "settings";
+type Section = "dashboard" | "posts" | "columns" | "new-column" | "categories" | "settings";
 
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState("");
@@ -173,6 +173,32 @@ function Dashboard({ posts, cols }: { posts: PostType[]; cols: ColumnType[] }) {
   );
 }
 
+function parseFaqText(value: string): PostType["faq"] {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [question, ...answerParts] = line.split("|");
+      return {
+        question: (question || "").trim(),
+        answer: answerParts.join("|").trim(),
+      };
+    })
+    .filter((item) => item.question && item.answer);
+}
+
+function parseRelatedText(value: string): string[] {
+  return value
+    .split(/[\n,]/)
+    .map((slug) => slug.trim())
+    .filter(Boolean);
+}
+
+function formatFaqText(faq: PostType["faq"]): string {
+  return faq.map((item) => item.question + " | " + item.answer).join("\n");
+}
+
 interface PostEditorProps {
   post: PostType | null;
   onSave: (p: PostType) => void;
@@ -199,7 +225,14 @@ function PostEditor({ post, onSave, onCancel }: PostEditorProps) {
     }
   );
 
+  const [faqText, setFaqText] = useState(() => formatFaqText(form.faq));
+  const [relatedText, setRelatedText] = useState(() => form.relatedPostSlugs.join(", "));
   const set = (k: keyof PostType, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
+  const saveForm = () => onSave({
+    ...form,
+    faq: parseFaqText(faqText),
+    relatedPostSlugs: parseRelatedText(relatedText),
+  });
 
   return (
     <div className="space-y-5">
@@ -209,7 +242,10 @@ function PostEditor({ post, onSave, onCancel }: PostEditorProps) {
           <button onClick={onCancel} className="flex items-center gap-1 px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors">
             <X size={14} />취소
           </button>
-          <button onClick={() => onSave(form)} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity" data-testid="button-save-post">
+          <Link href={form.slug ? `/posts/${form.slug}` : "/"} className="flex items-center gap-1 px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors">
+            <Eye size={14} />미리보기
+          </Link>
+          <button onClick={saveForm} className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity" data-testid="button-save-post">
             <Save size={14} />저장
           </button>
         </div>
@@ -237,6 +273,14 @@ function PostEditor({ post, onSave, onCancel }: PostEditorProps) {
             <option value="draft">초안</option>
           </select>
         </div>
+        <div>
+          <label className="block text-xs font-medium text-foreground mb-1">작성일</label>
+          <input type="date" value={form.publishedAt} onChange={(e) => set("publishedAt", e.target.value)} className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-foreground mb-1">수정일</label>
+          <input type="date" value={form.updatedAt} onChange={(e) => set("updatedAt", e.target.value)} className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+        </div>
       </div>
 
       <div>
@@ -247,6 +291,18 @@ function PostEditor({ post, onSave, onCancel }: PostEditorProps) {
       <div>
         <label className="block text-xs font-medium text-foreground mb-1">본문 (HTML)</label>
         <textarea value={form.content} onChange={(e) => set("content", e.target.value)} rows={10} className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y font-mono" />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-foreground mb-1">FAQ 입력</label>
+        <textarea value={faqText} onChange={(e) => setFaqText(e.target.value)} rows={5} placeholder="질문 | 답변 형식으로 한 줄에 하나씩 입력" className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y" />
+        <p className="text-xs text-muted-foreground mt-1">예: 입점 신청은 언제 가능한가요? | 연중 신청 가능하지만 심사 일정은 달라질 수 있습니다.</p>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-foreground mb-1">관련 글 슬러그</label>
+        <input value={relatedText} onChange={(e) => setRelatedText(e.target.value)} placeholder="seolyeo-junbi, ipjeom-jagyeok-jogeon" className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+        <p className="text-xs text-muted-foreground mt-1">쉼표 또는 줄바꿈으로 여러 글을 연결할 수 있습니다.</p>
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer">
@@ -318,7 +374,7 @@ function PostsManager({ posts, setPosts }: { posts: PostType[]; setPosts: (p: Po
   );
 }
 
-function ColumnsManager({ cols, setCols }: { cols: ColumnType[]; setCols: (c: ColumnType[]) => void }) {
+function ColumnsManager({ cols, setCols, forceNew = false }: { cols: ColumnType[]; setCols: (c: ColumnType[]) => void; forceNew?: boolean }) {
   const [editing, setEditing] = useState<ColumnType | null | "new">(null);
   const [form, setForm] = useState<ColumnType | null>(null);
 
@@ -341,6 +397,10 @@ function ColumnsManager({ cols, setCols }: { cols: ColumnType[]; setCols: (c: Co
     setForm(c);
     setEditing(c);
   };
+
+  useEffect(() => {
+    if (forceNew && editing === null) startNew();
+  }, [forceNew]);
 
   const handleSave = () => {
     if (!form) return;
@@ -528,7 +588,7 @@ function DataPanel({ posts, cols }: { posts: PostType[]; cols: ColumnType[] }) {
 
 export default function Admin() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [section, setSection] = useState<Section>("dashboard");
+  const [section, setSection] = useState<Section>(() => new URLSearchParams(window.location.search).get("section") === "new-column" ? "new-column" : "dashboard");
   const [posts, setPostsState] = useState<PostType[]>(() => {
     const stored = localStorage.getItem("cms_posts");
     return stored ? JSON.parse(stored) : defaultPosts;
@@ -573,7 +633,7 @@ export default function Admin() {
             </>
           )}
           {section === "posts" && <PostsManager posts={posts} setPosts={setPosts} />}
-          {section === "columns" && <ColumnsManager cols={cols} setCols={setCols} />}
+          {(section === "columns" || section === "new-column") && <ColumnsManager cols={cols} setCols={setCols} forceNew={section === "new-column"} />}
           {section === "categories" && <CategoriesPanel />}
           {section === "settings" && <SiteSettings />}
         </div>
