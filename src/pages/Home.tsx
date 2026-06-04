@@ -46,10 +46,10 @@ export default function Home() {
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
               {siteConfig.tagline}. 입점 전 준비사항부터 방송 이후 관리까지, 단계별로 정직하게 안내합니다.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
               <Link
                 href="/categories"
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity"
                 data-testid="button-hero-categories"
               >
                 카테고리 둘러보기
@@ -57,7 +57,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/posts/ipjeom-joseon-checklist"
-                className="inline-flex items-center gap-2 bg-muted text-foreground px-5 py-2.5 rounded-lg font-medium hover:bg-muted/80 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-muted text-foreground px-5 py-2.5 rounded-lg font-medium hover:bg-muted/80 transition-colors"
               >
                 입점 체크리스트 보기
               </Link>
