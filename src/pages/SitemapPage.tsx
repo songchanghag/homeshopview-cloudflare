@@ -46,7 +46,7 @@ export default function SitemapPage() {
 
   return (
     <Layout>
-      <SeoHead title="사이트맵" description="공영홈쇼핑 입점 가이드의 전체 페이지 목록입니다." path="/sitemap-page" />
+      <SeoHead title="사이트맵" description="공영홈쇼핑 입점 가이드의 전체 페이지 목록입니다." path="/sitemap" />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <BreadcrumbNav items={[{ label: "사이트맵" }]} />
         <h1 className="text-2xl font-bold text-foreground mt-4 mb-8">사이트맵</h1>

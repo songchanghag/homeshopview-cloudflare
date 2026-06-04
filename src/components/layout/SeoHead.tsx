@@ -35,6 +35,14 @@ export default function SeoHead({ title, description, path = "" }: SeoHeadProps)
     setMeta("twitter:card", "summary");
     setMeta("twitter:title", fullTitle);
     setMeta("twitter:description", fullDescription);
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", fullUrl);
   }, [fullTitle, fullDescription, fullUrl]);
 
   return null;

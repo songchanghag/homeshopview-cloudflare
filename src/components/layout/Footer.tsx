@@ -87,7 +87,7 @@ export default function Footer() {
                 { href: "/privacy", label: "개인정보처리방침" },
                 { href: "/terms", label: "이용약관" },
                 { href: "/disclaimer", label: "면책고지" },
-                { href: "/sitemap-page", label: "사이트맵" },
+                { href: "/sitemap", label: "사이트맵" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link
