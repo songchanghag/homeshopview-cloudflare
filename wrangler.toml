@@ -1,0 +1,12 @@
+name = "homeshopview"
+main = "src/worker.ts"
+compatibility_date = "2026-05-20"
+routes = [
+  { pattern = "homeshopview.com/*", zone_name = "homeshopview.com" },
+  { pattern = "www.homeshopview.com/*", zone_name = "homeshopview.com" },
+  { pattern = "preview.homeshopview.com/*", zone_name = "homeshopview.com" }
+]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
