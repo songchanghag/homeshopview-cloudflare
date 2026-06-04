@@ -1,0 +1,14 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" rx="32" fill="#1B4FD8"/>
+  <rect x="12" y="12" width="156" height="156" rx="24" fill="#1B4FD8"/>
+  <!-- House shape -->
+  <path d="M90 38L36 80V148H72V110H108V148H144V80L90 38Z" fill="white" opacity="0.15"/>
+  <path d="M90 44L40 83V144H70V106H110V144H140V83L90 44Z" fill="white" opacity="0.25"/>
+  <!-- H letter -->
+  <rect x="58" y="68" width="16" height="60" rx="4" fill="white"/>
+  <rect x="106" y="68" width="16" height="60" rx="4" fill="white"/>
+  <rect x="58" y="91" width="64" height="14" rx="3" fill="white"/>
+  <!-- Amber accent dot -->
+  <circle cx="142" cy="42" r="14" fill="#F59E0B"/>
+  <path d="M135 42L139.5 46.5L149 37" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

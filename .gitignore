@@ -1,7 +1,4 @@
 node_modules/
-.wrangler/
-tmp-update/
-migrations/0002_seed_schedule_*.sql
-.env
-.env.*
-*.log
+dist/
+.tsbuildinfo
+.DS_Store
