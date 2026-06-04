@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>공영홈쇼핑 입점 가이드</title>
+    <link>https://homeshopview.com/</link>
+    <atom:link href="https://homeshopview.com/rss.xml" rel="self" type="application/rss+xml" />
+    <description>공영홈쇼핑 입점을 준비하는 중소기업과 소상공인을 위한 정보 글과 운영자 칼럼을 전합니다.</description>
+    <language>ko-KR</language>
+    <lastBuildDate>Fri, 22 May 2026 00:00:00 +0900</lastBuildDate>
+    <ttl>1440</ttl>
+
+    <item>
+      <title>공영홈쇼핑 입점 전 기본 체크리스트</title>
+      <link>https://homeshopview.com/posts/ipjeom-joseon-checklist</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/ipjeom-joseon-checklist</guid>
+      <pubDate>Fri, 22 May 2026 00:00:00 +0900</pubDate>
+      <description>입점 신청 전 반드시 점검해야 할 항목들을 단계별로 정리했습니다. 서류 준비부터 사업 역량까지 빠짐없이 확인하세요.</description>
+    </item>
+    <item>
+      <title>홈쇼핑에서 잘 팔리는 상품의 특징</title>
+      <link>https://homeshopview.com/posts/jal-pallineun-sanpum-teukjing</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/jal-pallineun-sanpum-teukjing</guid>
+      <pubDate>Sun, 17 May 2026 00:00:00 +0900</pubDate>
+      <description>공영홈쇼핑에서 실제로 판매 성과를 내는 상품들의 공통 특징을 분석했습니다. 내 상품과 맞는지 비교해 보세요.</description>
+    </item>
+    <item>
+      <title>공영홈쇼핑 입점 준비, 실제로 해보니 이런 점이 달랐습니다</title>
+      <link>https://homeshopview.com/columns/ipjeom-junbi-shilgam</link>
+      <guid isPermaLink="true">https://homeshopview.com/columns/ipjeom-junbi-shilgam</guid>
+      <pubDate>Mon, 11 May 2026 00:00:00 +0900</pubDate>
+      <description>서류 준비부터 방송까지, 직접 겪어보며 느낀 공영홈쇼핑만의 특징과 현실적인 조언.</description>
+    </item>
+    <item>
+      <title>공영홈쇼핑 입점 신청 방법 단계별 안내</title>
+      <link>https://homeshopview.com/posts/ipjeom-sincheon-bangbeob</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/ipjeom-sincheon-bangbeob</guid>
+      <pubDate>Thu, 07 May 2026 00:00:00 +0900</pubDate>
+      <description>공영홈쇼핑 입점 신청 절차를 처음부터 끝까지 단계별로 설명합니다. 온라인 신청 방법과 각 단계에서 준비해야 할 것들을 안내합니다.</description>
+    </item>
+    <item>
+      <title>큐시트 작성 요령과 방송 원고 구성법</title>
+      <link>https://homeshopview.com/posts/qusit-jagseong-tipeu</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/qusit-jagseong-tipeu</guid>
+      <pubDate>Sun, 03 May 2026 00:00:00 +0900</pubDate>
+      <description>방송 큐시트는 생방송의 뼈대입니다. 쇼호스트와 함께 원활한 방송을 위해 큐시트를 어떻게 구성해야 하는지 설명합니다.</description>
+    </item>
+    <item>
+      <title>입점 신청에 필요한 서류 목록과 준비 방법</title>
+      <link>https://homeshopview.com/posts/seolyeo-junbi</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/seolyeo-junbi</guid>
+      <pubDate>Thu, 30 Apr 2026 00:00:00 +0900</pubDate>
+      <description>공영홈쇼핑 입점 신청 시 요구되는 서류를 품목별로 정리했습니다. 어디서 발급받는지, 유의사항은 무엇인지 함께 안내합니다.</description>
+    </item>
+    <item>
+      <title>바이어·MD와의 첫 협의, 이렇게 준비하세요</title>
+      <link>https://homeshopview.com/posts/bigmaengso-hyeopui</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/bigmaengso-hyeopui</guid>
+      <pubDate>Wed, 22 Apr 2026 00:00:00 +0900</pubDate>
+      <description>MD와의 첫 미팅은 입점 성패를 좌우하는 중요한 순간입니다. 무엇을 준비하고 어떻게 대화해야 할지 실질적으로 안내합니다.</description>
+    </item>
+    <item>
+      <title>처음 MD를 만났을 때 당황했던 질문들</title>
+      <link>https://homeshopview.com/columns/md-cheoeum-mannassul-ttae</link>
+      <guid isPermaLink="true">https://homeshopview.com/columns/md-cheoeum-mannassul-ttae</guid>
+      <pubDate>Thu, 16 Apr 2026 00:00:00 +0900</pubDate>
+      <description>상품 기획 미팅에서 MD들이 반드시 물어보는 핵심 질문 3가지와 대응 방법.</description>
+    </item>
+    <item>
+      <title>입점 심사 기간과 합격·불합격 기준</title>
+      <link>https://homeshopview.com/posts/simsa-gigan-juuisahang</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/simsa-gigan-juuisahang</guid>
+      <pubDate>Sun, 12 Apr 2026 00:00:00 +0900</pubDate>
+      <description>공영홈쇼핑 입점 심사에 얼마나 걸리는지, 어떤 기준으로 평가받는지 구체적으로 알아봅니다.</description>
+    </item>
+    <item>
+      <title>공영홈쇼핑 정산 구조 이해하기</title>
+      <link>https://homeshopview.com/posts/jeonsan-gujo-ihaehagi</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/jeonsan-gujo-ihaehagi</guid>
+      <pubDate>Sat, 04 Apr 2026 00:00:00 +0900</pubDate>
+      <description>방송 후 언제, 어떻게 정산이 이루어지는지 공영홈쇼핑 정산 구조를 설명합니다. 수수료와 공제 항목도 함께 정리했습니다.</description>
+    </item>
+    <item>
+      <title>홈쇼핑 상품 가격과 구성 설정 전략</title>
+      <link>https://homeshopview.com/posts/gagyeok-gusong-jeonryak</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/gagyeok-gusong-jeonryak</guid>
+      <pubDate>Fri, 27 Mar 2026 00:00:00 +0900</pubDate>
+      <description>홈쇼핑에서 효과적으로 판매되는 가격 전략과 세트 구성 방법을 설명합니다. 단순 할인보다 중요한 구성의 힘을 이해하세요.</description>
+    </item>
+    <item>
+      <title>입점 이후에야 알게 된 것들</title>
+      <link>https://homeshopview.com/columns/ipjeom-ihu-balgyeonhan-geot</link>
+      <guid isPermaLink="true">https://homeshopview.com/columns/ipjeom-ihu-balgyeonhan-geot</guid>
+      <pubDate>Sat, 21 Mar 2026 00:00:00 +0900</pubDate>
+      <description>방송 한 번으로 끝나는 것이 아닙니다. 입점 후 겪게 되는 현실적인 관리 포인트.</description>
+    </item>
+    <item>
+      <title>공영홈쇼핑 입점 자격 조건 총정리</title>
+      <link>https://homeshopview.com/posts/ipjeom-jagyeok-jogeon</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/ipjeom-jagyeok-jogeon</guid>
+      <pubDate>Wed, 18 Mar 2026 00:00:00 +0900</pubDate>
+      <description>공영홈쇼핑에 입점하려면 어떤 자격이 필요한지 명확하게 정리했습니다. 중소기업 확인부터 소상공인 기준까지 꼼꼼히 살펴보세요.</description>
+    </item>
+    <item>
+      <title>재방송 신청과 장기 편성 전략</title>
+      <link>https://homeshopview.com/posts/jaebangsong-jeonryak</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/jaebangsong-jeonryak</guid>
+      <pubDate>Thu, 12 Mar 2026 00:00:00 +0900</pubDate>
+      <description>첫 방송 성공 이후 재방송을 유도하고 정기 편성을 확보하는 방법을 안내합니다. 지속적인 홈쇼핑 수익 구조를 만드는 전략입니다.</description>
+    </item>
+    <item>
+      <title>입점 신청이 거절되는 주요 이유와 대처법</title>
+      <link>https://homeshopview.com/posts/ipjeom-geobjeol-iyu</link>
+      <guid isPermaLink="true">https://homeshopview.com/posts/ipjeom-geobjeol-iyu</guid>
+      <pubDate>Sun, 08 Mar 2026 00:00:00 +0900</pubDate>
+      <description>많은 기업이 첫 신청에서 탈락합니다. 주요 거절 사유를 파악하고 재신청 전략을 세우는 방법을 안내합니다.</description>
+    </item>
+  </channel>
+</rss>
