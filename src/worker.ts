@@ -22,7 +22,7 @@ export default {
     const fallbackUrl = new URL(request.url);
     fallbackUrl.pathname = "/index.html";
     const fallbackResponse = await env.ASSETS.fetch(new Request(fallbackUrl.toString()));
-    return injectSeo(fallbackResponse, url);
+    return injectSeo(fallbackResponse, url, isKnownPagePath(url.pathname) ? 200 : 404);
   },
 };
 
@@ -40,7 +40,7 @@ function shouldInjectHtml(request: Request, response: Response): boolean {
   );
 }
 
-async function injectSeo(response: Response, url: URL): Promise<Response> {
+async function injectSeo(response: Response, url: URL, statusOverride?: number): Promise<Response> {
   const meta = getPageMeta(url.pathname);
   let html = await response.text();
 
@@ -84,10 +84,39 @@ async function injectSeo(response: Response, url: URL): Promise<Response> {
   const headers = new Headers(response.headers);
   headers.set("content-type", "text/html; charset=UTF-8");
   return new Response(html, {
-    status: response.status,
-    statusText: response.statusText,
+    status: statusOverride ?? response.status,
+    statusText: statusOverride === 404 ? "Not Found" : response.statusText,
     headers,
   });
+}
+
+function isKnownPagePath(pathname: string): boolean {
+  const normalizedPath = pathname.replace(/\/$/, "") || "/";
+  const staticPaths = new Set([
+    "/",
+    "/categories",
+    "/columns",
+    "/author",
+    "/about",
+    "/contact",
+    "/privacy",
+    "/terms",
+    "/disclaimer",
+    "/sitemap",
+    "/sitemap-page",
+    "/admin",
+  ]);
+  const categoryPaths = new Set([
+    "/categories/ipjeom-jeonbeob",
+    "/categories/sincheon-jeolcha",
+    "/categories/sang-pum-jeonryak",
+    "/categories/bang-song-jun-bi",
+    "/categories/ipjeom-ihu",
+  ]);
+
+  return staticPaths.has(normalizedPath) ||
+    categoryPaths.has(normalizedPath) ||
+    getDynamicTitle(normalizedPath, "") !== null;
 }
 
 function replaceBetween(html: string, pattern: RegExp, replacement: string): string {
